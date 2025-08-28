@@ -12,7 +12,7 @@ Metal-powered video upscaling
 ## Usage
 
 ```
-USAGE: fx-upscale <url> [--width <width>] [--height <height>] [--codec <codec>] [--keyframe-interval <seconds>] [--allow-frame-reordering]
+USAGE: fx-upscale <url> [--width <width>] [--height <height>] [--codec <codec>] [--keyframe-interval <seconds>] [--allow-frame-reordering] [--quality <quality>]
 
 ARGUMENTS:
   <url>                   The video file to upscale
@@ -25,6 +25,7 @@ OPTIONS:
                               Keyframe interval in seconds (default 2.0 for HEVC/H.264)
       --allow-frame-reordering
                               Allow B-frames. Off by default for HEVC/H.264 to improve scrubbing
+  -q, --quality <quality>      Encoder quality 0.0–1.0. Applies to HEVC/H.264
   -h, --help                  Show help information.
 ```
 
@@ -36,6 +37,8 @@ OPTIONS:
 > Extremely large outputs are automatically converted to ProRes 422 and saved as `.mov` to ensure stability and compatibility. Specifically, outputs larger than roughly 118 megapixels (≈14.5K × 8.1K) force ProRes due to encoder limitations with H.264/HEVC at those sizes.
 
 By default, HEVC/H.264 outputs use a 2.0-second keyframe interval and disable frame reordering (no B-frames) to make scrubbing and short seeks more reliable across players. You can adjust or override this via the flags above.
+
+When specifying `--quality`, values between 0.0–1.0 are accepted and mapped to VideoToolbox's `kVTCompressionPropertyKey_Quality`. This effectively tunes constant-quality behavior similar to CRF/CQ for H.264/HEVC via VideoToolbox. For ProRes, this setting is ignored.
 
 ## Installation
 

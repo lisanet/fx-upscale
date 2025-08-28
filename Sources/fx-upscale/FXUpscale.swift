@@ -9,14 +9,15 @@ import Upscaling
 @main struct FXUpscale: AsyncParsableCommand {
     @Argument(help: "The video file to upscale", transform: URL.init(fileURLWithPath:)) var url: URL
 
-    @Option(name: .shortAndLong, help: "The output file width") var width: Int?
-    @Option(name: .shortAndLong, help: "The output file height") var height: Int?
+    @Option(name: .shortAndLong, help: "The output file width")
+    var width: Int?
+    @Option(name: .shortAndLong, help: "The output file height")
+    var height: Int?
     @Option(name: .shortAndLong, help: "Output codec: 'hevc', 'prores', or 'h264' (default: hevc)")
     var codec: String = "hevc"
-
-    @Option(
-        name: [.customShort("k"), .long],
-        help: "Keyframe interval in seconds (default 2.0 for HEVC/H.264)")
+    @Option(name: .shortAndLong, help: "Encoder quality 0.0–1.0. Applies to HEVC/H.264")
+    var quality: Double?
+    @Option(name: .shortAndLong, help: "Keyframe interval in seconds (default 2.0 for HEVC/H.264)")
     var keyframeInterval: Double?
 
     @Flag(
@@ -92,6 +93,11 @@ import Upscaling
         let effectiveOutputCodec: AVVideoCodecType? =
             convertToProRes ? .proRes422 : requestedOutputCodec
 
+        // Validate quality range if provided
+        if let q = quality, !(0.0...1.0).contains(q) {
+            throw ValidationError("--quality must be between 0.0 and 1.0")
+        }
+
         let exportSession = UpscalingExportSession(
             asset: asset,
             outputCodec: effectiveOutputCodec,
@@ -99,7 +105,8 @@ import Upscaling
             outputSize: outputSize,
             creator: ProcessInfo.processInfo.processName,
             keyframeIntervalSeconds: keyframeInterval,
-            allowFrameReordering: allowFrameReordering
+            allowFrameReordering: allowFrameReordering,
+            quality: quality
         )
 
         CommandLine.info(

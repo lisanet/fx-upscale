@@ -13,7 +13,8 @@ public class UpscalingExportSession {
         outputSize: CGSize,
         creator: String? = nil,
         keyframeIntervalSeconds: Double? = nil,
-        allowFrameReordering: Bool = false
+        allowFrameReordering: Bool = false,
+        quality: Double? = nil
     ) {
         self.asset = asset
         self.outputCodec = outputCodec
@@ -29,6 +30,7 @@ public class UpscalingExportSession {
         self.creator = creator
         self.keyframeIntervalSeconds = keyframeIntervalSeconds
         self.allowFrameReordering = allowFrameReordering
+        self.quality = quality
         progress = Progress(
             parent: nil,
             userInfo: [
@@ -52,6 +54,7 @@ public class UpscalingExportSession {
     public let creator: String?
     public let keyframeIntervalSeconds: Double?
     public let allowFrameReordering: Bool
+    public let quality: Double?
 
     public let progress: Progress
 
@@ -91,7 +94,8 @@ public class UpscalingExportSession {
                     outputSize: outputSize,
                     outputCodec: outputCodec,
                     keyframeIntervalSeconds: self.keyframeIntervalSeconds,
-                    allowFrameReordering: self.allowFrameReordering
+                    allowFrameReordering: self.allowFrameReordering,
+                    quality: self.quality
                 )
             else { continue }
 
@@ -297,7 +301,8 @@ public class UpscalingExportSession {
         outputSize: CGSize,
         outputCodec: AVVideoCodecType?,
         keyframeIntervalSeconds: Double?,
-        allowFrameReordering: Bool
+        allowFrameReordering: Bool,
+        quality: Double?
     ) async throws -> AVAssetWriterInput? {
         switch track.mediaType {
         case .video:
@@ -371,6 +376,12 @@ public class UpscalingExportSession {
                     // Profile for broader compatibility (H.264). HEVC profile constants vary; omit for HEVC.
                     if codec == .h264 {
                         compression[AVVideoProfileLevelKey] = AVVideoProfileLevelH264HighAutoLevel
+                    }
+
+                    // Apply user-specified quality if provided (0.0–1.0)
+                    if let q = quality {
+                        let clamped = max(0.0, min(1.0, q))
+                        compression[String(kVTCompressionPropertyKey_Quality)] = clamped
                     }
                 }
 
