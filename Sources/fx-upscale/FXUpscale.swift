@@ -41,24 +41,31 @@ import Upscaling
         // 2. Use proportional width/height if only one is specified
         // 3. Default to 2x upscale
 
-        let width =
+        let outputWidth =
             width ?? height.map { Int(inputSize.width * (CGFloat($0) / inputSize.height)) } ?? Int(
                 inputSize.width) * 2
-        let height = height ?? Int(inputSize.height * (CGFloat(width) / inputSize.width))
+        let outputHeight = height ?? Int(inputSize.height * (CGFloat(outputWidth) / inputSize.width))
 
-        guard width <= UpscalingExportSession.maxOutputSize,
-            height <= UpscalingExportSession.maxOutputSize
+        guard outputWidth > 0, outputHeight > 0 else {
+            throw ValidationError("Calculated output size must be greater than zero")
+        }
+
+        guard outputWidth <= UpscalingExportSession.maxOutputSize,
+            outputHeight <= UpscalingExportSession.maxOutputSize
         else {
             throw ValidationError("Maximum supported width/height: 16384")
         }
 
-        let outputSize = CGSize(width: width, height: height)
-        let outputCodec: AVVideoCodecType? =
+        let outputSize = CGSize(width: outputWidth, height: outputHeight)
+        let requestedOutputCodec: AVVideoCodecType? = try {
             switch codec.lowercased() {
-            case "prores": .proRes422
-            case "h264": .h264
-            default: .hevc
+            case "prores": return .proRes422
+            case "h264": return .h264
+            case "hevc": return .hevc
+            default:
+                throw ValidationError("Invalid codec. Use one of: hevc, h264, prores")
             }
+        }()
 
         // Through anecdotal tests anything beyond 14.5K fails to encode for anything other than ProRes
         let convertToProRes = (outputSize.width * outputSize.height) > (14500 * 8156)
@@ -69,9 +76,11 @@ import Upscaling
             )
         }
 
+        let effectiveOutputCodec: AVVideoCodecType? = convertToProRes ? .proRes422 : requestedOutputCodec
+
         let exportSession = UpscalingExportSession(
             asset: asset,
-            outputCodec: convertToProRes ? .proRes422 : outputCodec,
+            outputCodec: effectiveOutputCodec,
             preferredOutputURL: url.renamed { "\($0) Upscaled" },
             outputSize: outputSize,
             creator: ProcessInfo.processInfo.processName
@@ -81,7 +90,7 @@ import Upscaling
             [
                 "Upscaling from \(Int(inputSize.width))x\(Int(inputSize.height)) ",
                 "to \(Int(outputSize.width))x\(Int(outputSize.height)) ",
-                "using codec: \(outputCodec?.rawValue ?? "hevc")",
+                "using codec: \(effectiveOutputCodec?.rawValue ?? "hevc")",
             ].joined())
         ProgressBar.start(progress: exportSession.progress)
         try await exportSession.export()

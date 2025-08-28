@@ -44,8 +44,9 @@ public final class Upscaler {
                 [
                     kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_32BGRA,
                     kCVPixelBufferMetalCompatibilityKey as String: true,
-                    kCVPixelBufferWidthKey: outputSize.width,
-                    kCVPixelBufferHeightKey: outputSize.height,
+                    kCVPixelBufferWidthKey: Int(outputSize.width),
+                    kCVPixelBufferHeightKey: Int(outputSize.height),
+                    kCVPixelBufferIOSurfacePropertiesKey as String: [:] as CFDictionary,
                 ] as CFDictionary, &pixelBufferPool)
             guard let pixelBufferPool else { return nil }
             self.pixelBufferPool = pixelBufferPool

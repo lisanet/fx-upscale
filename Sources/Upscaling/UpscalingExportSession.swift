@@ -118,8 +118,8 @@ public class UpscalingExportSession {
                                     kCVPixelBufferPixelFormatTypeKey as String:
                                         kCVPixelFormatType_32BGRA,
                                     kCVPixelBufferMetalCompatibilityKey as String: true,
-                                    kCVPixelBufferWidthKey as String: outputSize.width,
-                                    kCVPixelBufferHeightKey as String: outputSize.height,
+                                    kCVPixelBufferWidthKey as String: Int(outputSize.width),
+                                    kCVPixelBufferHeightKey as String: Int(outputSize.height),
                                 ]
                             )
                         ))
@@ -135,8 +135,8 @@ public class UpscalingExportSession {
                                     kCVPixelBufferPixelFormatTypeKey as String:
                                         kCVPixelFormatType_32BGRA,
                                     kCVPixelBufferMetalCompatibilityKey as String: true,
-                                    kCVPixelBufferWidthKey as String: outputSize.width,
-                                    kCVPixelBufferHeightKey as String: outputSize.height,
+                                    kCVPixelBufferWidthKey as String: Int(outputSize.width),
+                                    kCVPixelBufferHeightKey as String: Int(outputSize.height),
                                 ]
                             )
                         ))

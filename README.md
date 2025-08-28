@@ -10,22 +10,23 @@ Metal-powered video upscaling
 
 ## Usage
 ```
-USAGE: fx-upscale <url> [--width <width>] [--height <height>]
+USAGE: fx-upscale <url> [--width <width>] [--height <height>] [--codec <codec>]
 
 ARGUMENTS:
   <url>                   The video file to upscale
 
 OPTIONS:
-  -w, --width <width>     The output file width
-  -h, --height <height>   The output file height
-  -h, --help              Show help information.
+  -w, --width <width>         The output file width
+  -h, --height <height>       The output file height
+  -c, --codec <codec>         Output codec: 'hevc' (default), 'h264', or 'prores'
+  -h, --help                  Show help information.
 ```
 - If width and height are specified, they will be used for the output dimensions
 - If only 1 of width or height is specified, the other will be inferred proportionally
 - If neither width nor height is specified, the video will be upscaled by 2x
 
 > [!NOTE]
-> When upscaling videos to >4k, `.mp4` files will be converted to `.mov` and `h264` or `hevc` codecs will be re-encoded as `proRes422`.  This is due to the fact that macOS struggles to play back >4k video `h264` and `hevc` files, and `h264` and `hevc` codecs only support up to ~8k.  If you have a use case for creating >4k `h264`/`hevc` `.mp4`'s, please open an issue.
+> Extremely large outputs are automatically converted to ProRes 422 and saved as `.mov` to ensure stability and compatibility. Specifically, outputs larger than roughly 118 megapixels (≈14.5K × 8.1K) force ProRes due to encoder limitations with H.264/HEVC at those sizes.
 
 ## Installation
 ### Homebrew
