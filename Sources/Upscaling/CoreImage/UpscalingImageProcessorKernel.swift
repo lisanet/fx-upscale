@@ -1,7 +1,8 @@
 import CoreImage
 import Foundation
+
 #if canImport(MetalFX)
-import MetalFX
+    import MetalFX
 #endif
 
 // MARK: - UpscalingImageProcessorKernel
@@ -18,26 +19,30 @@ public class UpscalingImageProcessorKernel: CIImageProcessorKernel {
         output: any CIImageProcessorOutput
     ) throws {
         #if canImport(MetalFX)
-        guard let spatialScaler = arguments?["spatialScaler"] as? MTLFXSpatialScaler,
-              let inputTexture = inputs?.first?.metalTexture,
-              let outputTexture = output.metalTexture,
-              let commandBuffer = output.metalCommandBuffer else {
-            return
-        }
-        spatialScaler.colorTexture = inputTexture
-        if outputTexture.storageMode == .private {
-            spatialScaler.outputTexture = outputTexture
-            spatialScaler.encode(commandBuffer: commandBuffer)
-        } else {
-            guard let intermediateOutputTexture = arguments?["intermediateOutputTexture"] as? MTLTexture else {
+            guard let spatialScaler = arguments?["spatialScaler"] as? MTLFXSpatialScaler,
+                let inputTexture = inputs?.first?.metalTexture,
+                let outputTexture = output.metalTexture,
+                let commandBuffer = output.metalCommandBuffer
+            else {
                 return
             }
-            spatialScaler.outputTexture = intermediateOutputTexture
-            spatialScaler.encode(commandBuffer: commandBuffer)
-            let blitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-            blitCommandEncoder?.copy(from: intermediateOutputTexture, to: outputTexture)
-            blitCommandEncoder?.endEncoding()
-        }
+            spatialScaler.colorTexture = inputTexture
+            if outputTexture.storageMode == .private {
+                spatialScaler.outputTexture = outputTexture
+                spatialScaler.encode(commandBuffer: commandBuffer)
+            } else {
+                guard
+                    let intermediateOutputTexture = arguments?["intermediateOutputTexture"]
+                        as? MTLTexture
+                else {
+                    return
+                }
+                spatialScaler.outputTexture = intermediateOutputTexture
+                spatialScaler.encode(commandBuffer: commandBuffer)
+                let blitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
+                blitCommandEncoder?.copy(from: intermediateOutputTexture, to: outputTexture)
+                blitCommandEncoder?.endEncoding()
+            }
         #endif
     }
 
@@ -47,12 +52,12 @@ public class UpscalingImageProcessorKernel: CIImageProcessorKernel {
         outputRect: CGRect
     ) -> CGRect {
         #if canImport(MetalFX)
-        guard let spatialScaler = arguments?["spatialScaler"] as? MTLFXSpatialScaler else {
-            return .null
-        }
-        return CGRect(origin: .zero, size: spatialScaler.inputSize)
+            guard let spatialScaler = arguments?["spatialScaler"] as? MTLFXSpatialScaler else {
+                return .null
+            }
+            return CGRect(origin: .zero, size: spatialScaler.inputSize)
         #else
-        return outputRect
+            return outputRect
         #endif
     }
 }

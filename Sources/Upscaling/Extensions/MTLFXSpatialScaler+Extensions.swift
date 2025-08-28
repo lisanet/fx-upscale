@@ -1,13 +1,13 @@
 #if canImport(MetalFX)
-import MetalFX
+    import MetalFX
 
-extension MTLFXSpatialScaler {
-    var inputSize: CGSize {
-        CGSize(width: inputWidth, height: inputHeight)
-    }
+    extension MTLFXSpatialScaler {
+        var inputSize: CGSize {
+            CGSize(width: inputWidth, height: inputHeight)
+        }
 
-    var outputSize: CGSize {
-        CGSize(width: outputWidth, height: outputHeight)
+        var outputSize: CGSize {
+            CGSize(width: outputWidth, height: outputHeight)
+        }
     }
-}
 #endif

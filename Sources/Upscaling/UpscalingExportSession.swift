@@ -16,7 +16,8 @@ public class UpscalingExportSession {
         self.asset = asset
         self.outputCodec = outputCodec
         if preferredOutputURL.pathExtension.lowercased() != "mov", outputCodec?.isProRes ?? false {
-            outputURL = preferredOutputURL
+            outputURL =
+                preferredOutputURL
                 .deletingPathExtension()
                 .appendingPathExtension("mov")
         } else {
@@ -24,13 +25,15 @@ public class UpscalingExportSession {
         }
         self.outputSize = outputSize
         self.creator = creator
-        progress = Progress(parent: nil, userInfo: [
-            .fileURLKey: outputURL
-        ])
+        progress = Progress(
+            parent: nil,
+            userInfo: [
+                .fileURLKey: outputURL
+            ])
         progress.fileURL = outputURL
         progress.isCancellable = false
         #if os(macOS)
-        progress.publish()
+            progress.publish()
         #endif
     }
 
@@ -51,11 +54,12 @@ public class UpscalingExportSession {
             throw Error.outputURLAlreadyExists
         }
 
-        let outputFileType: AVFileType = switch outputURL.pathExtension.lowercased() {
-        case "mov": .mov
-        case "m4v": .m4v
-        default: .mp4
-        }
+        let outputFileType: AVFileType =
+            switch outputURL.pathExtension.lowercased() {
+            case "mov": .mov
+            case "m4v": .m4v
+            default: .mp4
+            }
 
         let assetWriter = try AVAssetWriter(outputURL: outputURL, fileType: outputFileType)
         assetWriter.metadata = try await asset.load(.metadata)
@@ -70,16 +74,18 @@ public class UpscalingExportSession {
             guard [.audio, .video].contains(track.mediaType) else { continue }
             let formatDescription = try await track.load(.formatDescriptions).first
 
-            guard let assetReaderOutput = Self.assetReaderOutput(
-                for: track,
-                formatDescription: formatDescription
-            ),
+            guard
+                let assetReaderOutput = Self.assetReaderOutput(
+                    for: track,
+                    formatDescription: formatDescription
+                ),
                 let assetWriterInput = try await Self.assetWriterInput(
                     for: track,
                     formatDescription: formatDescription,
                     outputSize: outputSize,
                     outputCodec: outputCodec
-                ) else { continue }
+                )
+            else { continue }
 
             if assetReader.canAdd(assetReaderOutput) {
                 assetReader.add(assetReaderOutput)
@@ -99,36 +105,41 @@ public class UpscalingExportSession {
             } else if track.mediaType == .video {
                 progress.totalUnitCount += 10
                 if #available(macOS 14.0, iOS 17.0, *),
-                   formatDescription?.hasLeftAndRightEye ?? false {
-                    try await mediaTracks.append(.spatialVideo(
-                        assetReaderOutput,
-                        assetWriterInput,
-                        track.load(.naturalSize),
-                        AVAssetWriterInputTaggedPixelBufferGroupAdaptor(
-                            assetWriterInput: assetWriterInput,
-                            sourcePixelBufferAttributes: [
-                                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
-                                kCVPixelBufferMetalCompatibilityKey as String: true,
-                                kCVPixelBufferWidthKey as String: outputSize.width,
-                                kCVPixelBufferHeightKey as String: outputSize.height
-                            ]
-                        )
-                    ))
+                    formatDescription?.hasLeftAndRightEye ?? false
+                {
+                    try await mediaTracks.append(
+                        .spatialVideo(
+                            assetReaderOutput,
+                            assetWriterInput,
+                            track.load(.naturalSize),
+                            AVAssetWriterInputTaggedPixelBufferGroupAdaptor(
+                                assetWriterInput: assetWriterInput,
+                                sourcePixelBufferAttributes: [
+                                    kCVPixelBufferPixelFormatTypeKey as String:
+                                        kCVPixelFormatType_32BGRA,
+                                    kCVPixelBufferMetalCompatibilityKey as String: true,
+                                    kCVPixelBufferWidthKey as String: outputSize.width,
+                                    kCVPixelBufferHeightKey as String: outputSize.height,
+                                ]
+                            )
+                        ))
                 } else {
-                    try await mediaTracks.append(.video(
-                        assetReaderOutput,
-                        assetWriterInput,
-                        track.load(.naturalSize),
-                        AVAssetWriterInputPixelBufferAdaptor(
-                            assetWriterInput: assetWriterInput,
-                            sourcePixelBufferAttributes: [
-                                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
-                                kCVPixelBufferMetalCompatibilityKey as String: true,
-                                kCVPixelBufferWidthKey as String: outputSize.width,
-                                kCVPixelBufferHeightKey as String: outputSize.height
-                            ]
-                        )
-                    ))
+                    try await mediaTracks.append(
+                        .video(
+                            assetReaderOutput,
+                            assetWriterInput,
+                            track.load(.naturalSize),
+                            AVAssetWriterInputPixelBufferAdaptor(
+                                assetWriterInput: assetWriterInput,
+                                sourcePixelBufferAttributes: [
+                                    kCVPixelBufferPixelFormatTypeKey as String:
+                                        kCVPixelFormatType_32BGRA,
+                                    kCVPixelBufferMetalCompatibilityKey as String: true,
+                                    kCVPixelBufferWidthKey as String: outputSize.width,
+                                    kCVPixelBufferHeightKey as String: outputSize.height,
+                                ]
+                            )
+                        ))
                 }
             }
         }
@@ -148,7 +159,8 @@ public class UpscalingExportSession {
                         case let .audio(output, input):
                             let progress = Progress(totalUnitCount: Int64(duration.seconds))
                             self.progress.addChild(progress, withPendingUnitCount: 1)
-                            try await Self.processAudioSamples(from: output, to: input, progress: progress)
+                            try await Self.processAudioSamples(
+                                from: output, to: input, progress: progress)
                         case let .video(output, input, inputSize, adaptor):
                             let progress = Progress(totalUnitCount: Int64(duration.seconds))
                             self.progress.addChild(progress, withPendingUnitCount: 10)
@@ -167,7 +179,8 @@ public class UpscalingExportSession {
                                 try await Self.processSpatialVideoSamples(
                                     from: output,
                                     to: input,
-                                    adaptor: adaptor as! AVAssetWriterInputTaggedPixelBufferGroupAdaptor,
+                                    adaptor: adaptor
+                                        as! AVAssetWriterInputTaggedPixelBufferGroupAdaptor,
                                     inputSize: inputSize,
                                     outputSize: outputSize,
                                     progress: progress
@@ -250,7 +263,8 @@ public class UpscalingExportSession {
                 kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
             ]
             if #available(macOS 14.0, iOS 17.0, *),
-               formatDescription?.hasLeftAndRightEye ?? false {
+                formatDescription?.hasLeftAndRightEye ?? false
+            {
                 outputSettings[AVVideoDecompressionPropertiesKey] = [
                     kVTDecompressionPropertyKey_RequestedMVHEVCVideoLayerIDs: [0, 1]
                 ]
@@ -280,19 +294,21 @@ public class UpscalingExportSession {
             var outputSettings: [String: Any] = [
                 AVVideoWidthKey: outputSize.width,
                 AVVideoHeightKey: outputSize.height,
-                AVVideoCodecKey: outputCodec ?? formatDescription?.videoCodecType ?? .hevc
+                AVVideoCodecKey: outputCodec ?? formatDescription?.videoCodecType ?? .hevc,
             ]
             if let colorPrimaries = formatDescription?.colorPrimaries,
-               let colorTransferFunction = formatDescription?.colorTransferFunction,
-               let colorYCbCrMatrix = formatDescription?.colorYCbCrMatrix {
+                let colorTransferFunction = formatDescription?.colorTransferFunction,
+                let colorYCbCrMatrix = formatDescription?.colorYCbCrMatrix
+            {
                 outputSettings[AVVideoColorPropertiesKey] = [
                     AVVideoColorPrimariesKey: colorPrimaries,
                     AVVideoTransferFunctionKey: colorTransferFunction,
-                    AVVideoYCbCrMatrixKey: colorYCbCrMatrix
+                    AVVideoYCbCrMatrixKey: colorYCbCrMatrix,
                 ]
             }
             if #available(macOS 14.0, iOS 17.0, *),
-               formatDescription?.hasLeftAndRightEye ?? false {
+                formatDescription?.hasLeftAndRightEye ?? false
+            {
                 var compressionProperties: [CFString: Any] = [:]
                 compressionProperties[kVTCompressionPropertyKey_MVHEVCVideoLayerIDs] = [0, 1]
                 if let extensions = formatDescription?.extensions {
@@ -300,7 +316,7 @@ public class UpscalingExportSession {
                         kVTCompressionPropertyKey_HeroEye,
                         kVTCompressionPropertyKey_StereoCameraBaseline,
                         kVTCompressionPropertyKey_HorizontalDisparityAdjustment,
-                        kCMFormatDescriptionExtension_HorizontalFieldOfView
+                        kCMFormatDescriptionExtension_HorizontalFieldOfView,
                     ] {
                         if let value = extensions.first(
                             where: { $0.key == key }
@@ -344,7 +360,8 @@ public class UpscalingExportSession {
                 while assetWriterInput.isReadyForMoreMediaData {
                     if let nextSampleBuffer = assetReaderOutput.copyNextSampleBuffer() {
                         if nextSampleBuffer.presentationTimeStamp.isNumeric {
-                            progress.completedUnitCount = Int64(nextSampleBuffer.presentationTimeStamp.seconds)
+                            progress.completedUnitCount = Int64(
+                                nextSampleBuffer.presentationTimeStamp.seconds)
                         }
                         guard assetWriterInput.append(nextSampleBuffer) else {
                             assetWriterInput.markAsFinished()
@@ -391,10 +408,12 @@ public class UpscalingExportSession {
                                 imageBuffer,
                                 pixelBufferPool: adaptor.pixelBufferPool
                             )
-                            guard adaptor.append(
-                                upscaledImageBuffer,
-                                withPresentationTime: nextSampleBuffer.presentationTimeStamp
-                            ) else {
+                            guard
+                                adaptor.append(
+                                    upscaledImageBuffer,
+                                    withPresentationTime: nextSampleBuffer.presentationTimeStamp
+                                )
+                            else {
                                 assetWriterInput.markAsFinished()
                                 continuation.resume()
                                 return
@@ -441,15 +460,18 @@ public class UpscalingExportSession {
                         }
                         if let taggedBuffers = nextSampleBuffer.taggedBuffers {
                             let leftEyeBuffer = taggedBuffers.first(where: {
-                                $0.tags.first(matchingCategory: .stereoView) == .stereoView(.leftEye)
+                                $0.tags.first(matchingCategory: .stereoView)
+                                    == .stereoView(.leftEye)
                             })?.buffer
                             let rightEyeBuffer = taggedBuffers.first(where: {
-                                $0.tags.first(matchingCategory: .stereoView) == .stereoView(.rightEye)
+                                $0.tags.first(matchingCategory: .stereoView)
+                                    == .stereoView(.rightEye)
                             })?.buffer
                             guard let leftEyeBuffer,
-                                  let rightEyeBuffer,
-                                  case let .pixelBuffer(leftEyePixelBuffer) = leftEyeBuffer,
-                                  case let .pixelBuffer(rightEyePixelBuffer) = rightEyeBuffer else {
+                                let rightEyeBuffer,
+                                case let .pixelBuffer(leftEyePixelBuffer) = leftEyeBuffer,
+                                case let .pixelBuffer(rightEyePixelBuffer) = rightEyeBuffer
+                            else {
                                 assetWriterInput.markAsFinished()
                                 continuation.resume(throwing: Error.invalidTaggedBuffers)
                                 return
@@ -470,10 +492,12 @@ public class UpscalingExportSession {
                                 tags: [.stereoView(.rightEye), .videoLayerID(1)],
                                 pixelBuffer: upscaledRightEyePixelBuffer
                             )
-                            guard adaptor.appendTaggedBuffers(
-                                [leftEyeTaggedBuffer, rightEyeTaggedBuffer],
-                                withPresentationTime: nextSampleBuffer.presentationTimeStamp
-                            ) else {
+                            guard
+                                adaptor.appendTaggedBuffers(
+                                    [leftEyeTaggedBuffer, rightEyeTaggedBuffer],
+                                    withPresentationTime: nextSampleBuffer.presentationTimeStamp
+                                )
+                            else {
                                 assetWriterInput.markAsFinished()
                                 continuation.resume()
                                 return
@@ -496,8 +520,8 @@ public class UpscalingExportSession {
 
 // MARK: UpscalingExportSession.Error
 
-public extension UpscalingExportSession {
-    enum Error: Swift.Error {
+extension UpscalingExportSession {
+    public enum Error: Swift.Error {
         case outputURLAlreadyExists
         case couldNotAddAssetReaderOutput(AVMediaType)
         case couldNotAddAssetWriterInput(AVMediaType)
