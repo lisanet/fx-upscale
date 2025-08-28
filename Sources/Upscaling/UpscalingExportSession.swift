@@ -1,4 +1,4 @@
-import AVFoundation
+@preconcurrency import AVFoundation
 import VideoToolbox
 
 // MARK: - UpscalingExportSession
@@ -177,7 +177,7 @@ public class UpscalingExportSession {
                                 to: input,
                                 adaptor: adaptor,
                                 inputSize: inputSize,
-                                outputSize: outputSize,
+                                outputSize: self.outputSize,
                                 progress: progress
                             )
                         case let .spatialVideo(output, input, inputSize, adaptor):
@@ -190,7 +190,7 @@ public class UpscalingExportSession {
                                     adaptor: adaptor
                                         as! AVAssetWriterInputTaggedPixelBufferGroupAdaptor,
                                     inputSize: inputSize,
-                                    outputSize: outputSize,
+                                    outputSize: self.outputSize,
                                     progress: progress
                                 )
                             }
@@ -242,7 +242,7 @@ public class UpscalingExportSession {
 
     // MARK: Private
 
-    private enum MediaTrack {
+    private enum MediaTrack: @unchecked Sendable {
         case audio(
             _ output: AVAssetReaderOutput,
             _ input: AVAssetWriterInput
@@ -587,3 +587,6 @@ extension UpscalingExportSession {
         case failedToCreateUpscaler
     }
 }
+
+// Silence Swift 6 Sendable checks for controlled use across tasks.
+extension UpscalingExportSession: @unchecked Sendable {}

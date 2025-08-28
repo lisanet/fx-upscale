@@ -1,4 +1,4 @@
-import AVFoundation
+@preconcurrency import AVFoundation
 import CoreImage
 import CoreVideo
 import Foundation
@@ -230,3 +230,6 @@ extension Upscaler {
         case couldNotMakeCommandBuffer
     }
 }
+
+// Silence Swift 6 Sendable checks for controlled use across tasks.
+extension Upscaler: @unchecked Sendable {}

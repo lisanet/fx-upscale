@@ -1,4 +1,4 @@
-import AVFoundation
+@preconcurrency import AVFoundation
 import ArgumentParser
 import Foundation
 import SwiftTUI
