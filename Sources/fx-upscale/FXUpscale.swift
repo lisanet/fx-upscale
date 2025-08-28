@@ -14,6 +14,18 @@ import Upscaling
     @Option(name: .shortAndLong, help: "Output codec: 'hevc', 'prores', or 'h264' (default: hevc)")
     var codec: String = "hevc"
 
+    @Option(
+        name: [.customShort("k"), .long],
+        help: "Keyframe interval in seconds (default 2.0 for HEVC/H.264)")
+    var keyframeInterval: Double?
+
+    @Flag(
+        name: .long,
+        help:
+            "Allow frame reordering (B-frames). Defaults to off for HEVC/H.264 to improve scrubbing."
+    )
+    var allowFrameReordering: Bool = false
+
     mutating func run() async throws {
         guard ["mov", "m4v", "mp4"].contains(url.pathExtension.lowercased()) else {
             throw ValidationError("Unsupported file type. Supported types: mov, m4v, mp4")
@@ -44,7 +56,8 @@ import Upscaling
         let outputWidth =
             width ?? height.map { Int(inputSize.width * (CGFloat($0) / inputSize.height)) } ?? Int(
                 inputSize.width) * 2
-        let outputHeight = height ?? Int(inputSize.height * (CGFloat(outputWidth) / inputSize.width))
+        let outputHeight =
+            height ?? Int(inputSize.height * (CGFloat(outputWidth) / inputSize.width))
 
         guard outputWidth > 0, outputHeight > 0 else {
             throw ValidationError("Calculated output size must be greater than zero")
@@ -76,14 +89,17 @@ import Upscaling
             )
         }
 
-        let effectiveOutputCodec: AVVideoCodecType? = convertToProRes ? .proRes422 : requestedOutputCodec
+        let effectiveOutputCodec: AVVideoCodecType? =
+            convertToProRes ? .proRes422 : requestedOutputCodec
 
         let exportSession = UpscalingExportSession(
             asset: asset,
             outputCodec: effectiveOutputCodec,
             preferredOutputURL: url.renamed { "\($0) Upscaled" },
             outputSize: outputSize,
-            creator: ProcessInfo.processInfo.processName
+            creator: ProcessInfo.processInfo.processName,
+            keyframeIntervalSeconds: keyframeInterval,
+            allowFrameReordering: allowFrameReordering
         )
 
         CommandLine.info(

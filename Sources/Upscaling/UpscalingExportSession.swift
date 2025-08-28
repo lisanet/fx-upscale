@@ -11,7 +11,9 @@ public class UpscalingExportSession {
         outputCodec: AVVideoCodecType? = nil,
         preferredOutputURL: URL,
         outputSize: CGSize,
-        creator: String? = nil
+        creator: String? = nil,
+        keyframeIntervalSeconds: Double? = nil,
+        allowFrameReordering: Bool = false
     ) {
         self.asset = asset
         self.outputCodec = outputCodec
@@ -25,6 +27,8 @@ public class UpscalingExportSession {
         }
         self.outputSize = outputSize
         self.creator = creator
+        self.keyframeIntervalSeconds = keyframeIntervalSeconds
+        self.allowFrameReordering = allowFrameReordering
         progress = Progress(
             parent: nil,
             userInfo: [
@@ -46,6 +50,8 @@ public class UpscalingExportSession {
     public let outputURL: URL
     public let outputSize: CGSize
     public let creator: String?
+    public let keyframeIntervalSeconds: Double?
+    public let allowFrameReordering: Bool
 
     public let progress: Progress
 
@@ -83,7 +89,9 @@ public class UpscalingExportSession {
                     for: track,
                     formatDescription: formatDescription,
                     outputSize: outputSize,
-                    outputCodec: outputCodec
+                    outputCodec: outputCodec,
+                    keyframeIntervalSeconds: self.keyframeIntervalSeconds,
+                    allowFrameReordering: self.allowFrameReordering
                 )
             else { continue }
 
@@ -287,7 +295,9 @@ public class UpscalingExportSession {
         for track: AVAssetTrack,
         formatDescription: CMFormatDescription?,
         outputSize: CGSize,
-        outputCodec: AVVideoCodecType?
+        outputCodec: AVVideoCodecType?,
+        keyframeIntervalSeconds: Double?,
+        allowFrameReordering: Bool
     ) async throws -> AVAssetWriterInput? {
         switch track.mediaType {
         case .video:
@@ -325,8 +335,54 @@ public class UpscalingExportSession {
                         }
                     }
                 }
+                // Start with spatial video compression props, then merge general ones below
                 outputSettings[AVVideoCompressionPropertiesKey] = compressionProperties
             }
+
+            // Merge in general compression properties for better seeking/scrubbing
+            do {
+                var compression =
+                    outputSettings[AVVideoCompressionPropertiesKey]
+                    as? [String: Any] ?? [:]
+
+                // Determine codec to apply sensible defaults only for interframe codecs
+                let codec: AVVideoCodecType = {
+                    if let c = outputSettings[AVVideoCodecKey] as? AVVideoCodecType { return c }
+                    if let s = outputSettings[AVVideoCodecKey] as? String {
+                        return AVVideoCodecType(rawValue: s)
+                    }
+                    return formatDescription?.videoCodecType ?? .hevc
+                }()
+
+                if codec == .hevc || codec == .h264 {
+                    // Expected FPS (if available)
+                    let fps = try await track.load(.nominalFrameRate)
+                    if fps > 0 {
+                        compression[AVVideoExpectedSourceFrameRateKey] = Int(ceil(Double(fps)))
+                    }
+
+                    // Keyframe interval targeting duration (fallback to 2.0s if not provided)
+                    let intervalSeconds = keyframeIntervalSeconds ?? 2.0
+                    compression[AVVideoMaxKeyFrameIntervalDurationKey] = intervalSeconds
+
+                    // Disable B-frames by default unless explicitly allowed
+                    compression[AVVideoAllowFrameReorderingKey] = allowFrameReordering
+
+                    // Profile for broader compatibility (H.264). HEVC profile constants vary; omit for HEVC.
+                    if codec == .h264 {
+                        compression[AVVideoProfileLevelKey] = AVVideoProfileLevelH264HighAutoLevel
+                    }
+                }
+
+                if !compression.isEmpty {
+                    // Merge back into output settings
+                    let existing =
+                        outputSettings[AVVideoCompressionPropertiesKey] as? [String: Any] ?? [:]
+                    outputSettings[AVVideoCompressionPropertiesKey] = existing.merging(compression)
+                    { _, new in new }
+                }
+            }
+
             let assetWriterInput = AVAssetWriterInput(
                 mediaType: .video,
                 outputSettings: outputSettings
