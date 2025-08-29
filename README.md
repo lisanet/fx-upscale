@@ -35,25 +35,3 @@ OPTIONS:
 By default, HEVC/H.264 outputs use a 2.0-second keyframe interval and disable frame reordering (no B-frames) to make scrubbing and short seeks more reliable across players. You can adjust or override this via the flags above.
 
 When specifying `--quality`, values between 0.0–1.0 are accepted and mapped to VideoToolbox's `kVTCompressionPropertyKey_Quality`. This effectively tunes constant-quality behavior similar to CRF/CQ for H.264/HEVC via VideoToolbox. For ProRes, this setting is ignored.
-
-## Installation
-
-### Homebrew
-
-```bash
-brew install finnvoor/tools/fx-upscale
-```
-
-### Mint
-
-```bash
-mint install finnvoor/fx-upscale
-```
-
-### Manual
-
-Download the latest release from [releases](https://github.com/Finnvoor/MetalFXUpscale/releases).
-
-#### `ffmpeg` upscaling vs `fx-upscale`
-
-<img src="https://github.com/finnvoor/fx-upscale/assets/8284016/7ae867c2-caef-43d8-8fe3-7048c55f55bd" width="800" />
