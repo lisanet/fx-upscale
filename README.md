@@ -2,13 +2,6 @@
 
 Metal-powered video upscaling
 
-<p align="center">
-<img src="https://github.com/finnvoor/fx-upscale/assets/8284016/c2ab0754-13f8-4fcc-a0f1-c10cf727af6d" width="800" />
-</p>
-
-> [!TIP]
-> Looking for an app-based version of `fx-upscale`? Download [_Unsqueeze_](https://apps.apple.com/app/apple-store/id6475134617?pt=120542042&ct=github&mt=8) today! 🔥
-
 ## Usage
 
 ```
