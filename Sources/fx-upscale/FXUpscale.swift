@@ -13,6 +13,8 @@ import Upscaling
     var width: Int?
     @Option(name: .shortAndLong, help: "The output file height")
     var height: Int?
+    @Option(name: .shortAndLong, help: "Scale factor (e.g. 2.0). Overrides width/height")
+    var scale: Double?
     @Option(name: .shortAndLong, help: "Output codec: 'hevc', 'prores', or 'h264' (default: hevc)")
     var codec: String = "hevc"
     @Option(name: .shortAndLong, help: "Encoder quality 0.0–1.0. Applies to HEVC/H.264")
@@ -50,15 +52,30 @@ import Upscaling
         let naturalSize = try await videoTrack.load(.naturalSize)
         let inputSize = dimensions ?? naturalSize
 
-        // 1. Use passed in width/height
-        // 2. Use proportional width/height if only one is specified
-        // 3. Default to 2x upscale
+        // Validate mutually exclusive options
+        if scale != nil, (width != nil || height != nil) {
+            throw ValidationError("Cannot combine --scale with --width/--height")
+        }
 
-        let outputWidth =
-            width ?? height.map { Int(inputSize.width * (CGFloat($0) / inputSize.height)) } ?? Int(
-                inputSize.width) * 2
-        let outputHeight =
-            height ?? Int(inputSize.height * (CGFloat(outputWidth) / inputSize.width))
+        // 1. Use --scale if provided
+        // 2. Use passed in width/height
+        // 3. Use proportional width/height if only one is specified
+        // 4. Default to 2x upscale
+
+        var outputWidth: Int
+        var outputHeight: Int
+
+        if let s = scale {
+            guard s > 0 else { throw ValidationError("--scale must be greater than 0") }
+            outputWidth = Int(inputSize.width * CGFloat(s))
+            outputHeight = Int(inputSize.height * CGFloat(s))
+        } else {
+            outputWidth =
+                width ?? height.map { Int(inputSize.width * (CGFloat($0) / inputSize.height)) } ?? Int(
+                    inputSize.width) * 2
+            outputHeight =
+                height ?? Int(inputSize.height * (CGFloat(outputWidth) / inputSize.width))
+        }
 
         guard outputWidth > 0, outputHeight > 0 else {
             throw ValidationError("Calculated output size must be greater than zero")
