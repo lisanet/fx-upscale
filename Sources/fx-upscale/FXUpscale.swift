@@ -20,8 +20,8 @@ import Upscaling
     var scale: Double?
     @Option(name: .shortAndLong, help: "Output codec: 'hevc', 'prores', or 'h264' (default: hevc)")
     var codec: String = "hevc"
-    @Option(name: .shortAndLong, help: "Encoder quality 0.0–1.0. Applies to HEVC/H.264")
-    var quality: Double?
+    @Option(name: .shortAndLong, help: "encoder quality 0 – 100. Applies to HEVC/H.264")
+    var quality: Int?
     @Option(name: .shortAndLong, help: "Keyframe interval in seconds (default 2.0 for HEVC/H.264)")
     var keyframeInterval: Double?
 
@@ -114,10 +114,13 @@ import Upscaling
             convertToProRes ? .proRes422 : requestedOutputCodec
 
         // Validate quality range if provided
-        if let q = quality, !(0.0...1.0).contains(q) {
-            throw ValidationError("--quality must be between 0.0 and 1.0")
+        var normalizedQuality: Double? = nil
+        if let q = quality {
+            guard (0...100).contains(q) else {
+                throw ValidationError("--quality must be between 0 and 100")
+            }
+            normalizedQuality = Double(q) / 100.0
         }
-
         let exportSession = UpscalingExportSession(
             asset: asset,
             outputCodec: effectiveOutputCodec,
@@ -127,7 +130,7 @@ import Upscaling
             creator: ProcessInfo.processInfo.processName,
             keyframeIntervalSeconds: keyframeInterval,
             allowFrameReordering: allowFrameReordering,
-            quality: quality
+            quality: normalizedQuality
         )
 
         CommandLine.info(
