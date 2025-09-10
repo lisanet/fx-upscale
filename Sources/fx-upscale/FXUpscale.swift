@@ -12,13 +12,13 @@ import Upscaling
             var input: URL
     @Option(name: [.customShort("o"), .customLong("output")], help: "output video file path")
     var output: String?
-    @Option(name: .shortAndLong, help: "The output file width")
+    @Option(name: .shortAndLong, help: "width in pixels of output video")
     var width: Int?
-    @Option(name: .shortAndLong, help: "The output file height")
+    @Option(name: .shortAndLong, help: "height in pixels of output video")
     var height: Int?
-    @Option(name: .shortAndLong, help: "Scale factor (e.g. 2.0). Overrides width/height")
+    @Option(name: .shortAndLong, help: ArgumentHelp("scale factor (e.g. 2.0). Overrides width/height", valueName: "factor"))
     var scale: Double?
-    @Option(name: .shortAndLong, help: "Output codec: 'hevc', 'prores', or 'h264' (default: hevc)")
+    @Option(name: .shortAndLong, help: "output codec: 'hevc', 'prores', or 'h264")
     var codec: String = "hevc"
     @Option(name: .shortAndLong, help: "encoder quality 0 – 100. Applies to HEVC/H.264")
     var quality: Int?
