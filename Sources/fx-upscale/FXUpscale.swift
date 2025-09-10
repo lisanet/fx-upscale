@@ -50,6 +50,11 @@ import Upscaling
         guard let videoTrack = try await asset.loadTracks(withMediaType: .video).first else {
             throw ValidationError("Failed to get video track from input file")
         }
+        // get various data
+        let duration = try await videoTrack.load(.timeRange).duration
+        let fps = try await videoTrack.load(.nominalFrameRate)
+        let totalFrames = Int(CMTimeGetSeconds(duration) * Double(fps))
+        let videoLength = formatTime(CMTimeGetSeconds(duration))
 
         let formatDescription = try await videoTrack.load(.formatDescriptions).first
         let dimensions = formatDescription.map {
@@ -140,15 +145,40 @@ import Upscaling
             allowOverWrite: allowOverWrite
         )
 
+        CommandLine.info("Video duration: \(videoLength), total frames: \(totalFrames)")
         CommandLine.info(
             [
-                "Upscaling from \(Int(inputSize.width))x\(Int(inputSize.height)) ",
+                "Upscaling: \(Int(inputSize.width))x\(Int(inputSize.height)) ",
                 "to \(Int(outputSize.width))x\(Int(outputSize.height)) ",
-                "using codec: \(effectiveOutputCodec?.rawValue ?? "hevc")",
             ].joined())
+        CommandLine.info(String("Codec: \(effectiveOutputCodec?.rawValue ?? "hevc")"))
         ProgressBar.start(progress: exportSession.progress)
-        try await exportSession.export()
-        ProgressBar.stop()
-        CommandLine.success("Video successfully upscaled!")
+
+        let startTime = Date()
+        do {
+            try await exportSession.export()
+            
+            let elapsed = Date().timeIntervalSince(startTime)
+            let elapsedDuration = formatTime(elapsed)
+            let encodedFPS = Double(totalFrames) / elapsed
+            
+            ProgressBar.stop()
+            
+            CommandLine.info("Encoding time: \(elapsedDuration), fps: \(String(format: "%.2f", encodedFPS))")
+            CommandLine.success("Video successfully upscaled!")
+        } catch {
+            CommandLine.warn(error.localizedDescription)
+        }
     }
 }
+
+func formatTime(_ seconds: Double) -> String {
+    let totalSeconds = Int(seconds)
+    let hours = totalSeconds / 3600
+    let minutes = (totalSeconds % 3600) / 60
+    let secs = totalSeconds % 60
+    let milliseconds = Int((seconds.truncatingRemainder(dividingBy: 1)) * 1000)
+
+    return String(format: "%02d:%02d:%02d.%03d", hours, minutes, secs, milliseconds)
+}
+

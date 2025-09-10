@@ -605,7 +605,7 @@ public class UpscalingExportSession {
 // MARK: UpscalingExportSession.Error
 
 extension UpscalingExportSession {
-    public enum Error: Swift.Error {
+    public enum Error: Swift.Error, LocalizedError {
         case outputURLAlreadyExists
         case couldNotAddAssetReaderOutput(AVMediaType)
         case couldNotAddAssetWriterInput(AVMediaType)
@@ -613,6 +613,52 @@ extension UpscalingExportSession {
         case missingTaggedBuffers
         case invalidTaggedBuffers
         case failedToCreateUpscaler
+
+        public var errorDescription: String? {
+            switch self {
+            case .outputURLAlreadyExists:
+                return NSLocalizedString(
+                    "Output file already exists. Use -y to overwrite.",
+                    comment: "UpscalingExportSession.Error"
+                )
+            case let .couldNotAddAssetReaderOutput(mediaType):
+                return String(
+                    format: NSLocalizedString(
+                        "Could not add asset reader output for media type %@",
+                        comment: "UpscalingExportSession.Error"
+                    ),
+                    mediaType.rawValue
+                )
+            case let .couldNotAddAssetWriterInput(mediaType):
+                return String(
+                    format: NSLocalizedString(
+                        "Could not add asset writer input for media type %@",
+                        comment: "UpscalingExportSession.Error"
+                    ),
+                    mediaType.rawValue
+                )
+            case .missingImageBuffer:
+                return NSLocalizedString(
+                    "Missing image buffer in video sample",
+                    comment: "UpscalingExportSession.Error"
+                )
+            case .missingTaggedBuffers:
+                return NSLocalizedString(
+                    "Missing tagged buffers in spatial video sample",
+                    comment: "UpscalingExportSession.Error"
+                )
+            case .invalidTaggedBuffers:
+                return NSLocalizedString(
+                    "Invalid tagged buffers in spatial video sample",
+                    comment: "UpscalingExportSession.Error"
+                )
+            case .failedToCreateUpscaler:
+                return NSLocalizedString(
+                    "Failed to create upscaler",
+                    comment: "UpscalingExportSession.Error"
+                )
+            }
+        }
     }
 }
 
