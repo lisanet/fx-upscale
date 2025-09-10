@@ -1,7 +1,8 @@
 import CoreImage
 import MetalFX
-@testable import Upscaling
 import XCTest
+
+@testable import Upscaling
 
 final class UpscalingTests: XCTestCase {
     func testBasicUpscale() async throws {
