@@ -12,7 +12,7 @@ public class UpscalingExportSession {
         preferredOutputURL: URL,
         outputSize: CGSize,
         creator: String? = nil,
-        keyframeIntervalSeconds: Double? = nil,
+        gopSize: Int? = nil,
         allowFrameReordering: Bool = false,
         quality: Double? = nil
     ) {
@@ -28,7 +28,7 @@ public class UpscalingExportSession {
         }
         self.outputSize = outputSize
         self.creator = creator
-        self.keyframeIntervalSeconds = keyframeIntervalSeconds
+        self.gopSize = gopSize
         self.allowFrameReordering = allowFrameReordering
         self.quality = quality
         progress = Progress(
@@ -52,7 +52,7 @@ public class UpscalingExportSession {
     public let outputURL: URL
     public let outputSize: CGSize
     public let creator: String?
-    public let keyframeIntervalSeconds: Double?
+    public let gopSize: Int?
     public let allowFrameReordering: Bool
     public let quality: Double?
 
@@ -93,7 +93,7 @@ public class UpscalingExportSession {
                     formatDescription: formatDescription,
                     outputSize: outputSize,
                     outputCodec: outputCodec,
-                    keyframeIntervalSeconds: self.keyframeIntervalSeconds,
+                    gopSize: self.gopSize,
                     allowFrameReordering: self.allowFrameReordering,
                     quality: self.quality
                 )
@@ -300,7 +300,7 @@ public class UpscalingExportSession {
         formatDescription: CMFormatDescription?,
         outputSize: CGSize,
         outputCodec: AVVideoCodecType?,
-        keyframeIntervalSeconds: Double?,
+        gopSize: Int?,
         allowFrameReordering: Bool,
         quality: Double?
     ) async throws -> AVAssetWriterInput? {
@@ -366,9 +366,8 @@ public class UpscalingExportSession {
                         compression[AVVideoExpectedSourceFrameRateKey] = Int(ceil(Double(fps)))
                     }
 
-                    // Keyframe interval targeting duration (fallback to 2.0s if not provided)
-                    let intervalSeconds = keyframeIntervalSeconds ?? 2.0
-                    compression[AVVideoMaxKeyFrameIntervalDurationKey] = intervalSeconds
+                    // GOP size
+                    gopSize.map { compression[AVVideoMaxKeyFrameIntervalKey] = $0 }
 
                     // Disable B-frames by default unless explicitly allowed
                     compression[AVVideoAllowFrameReorderingKey] = allowFrameReordering

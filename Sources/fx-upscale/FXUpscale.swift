@@ -22,8 +22,8 @@ import Upscaling
     var codec: String = "hevc"
     @Option(name: .shortAndLong, help: "encoder quality 0 – 100. Applies to HEVC/H.264")
     var quality: Int?
-    @Option(name: .shortAndLong, help: "Keyframe interval in seconds (default 2.0 for HEVC/H.264)")
-    var keyframeInterval: Double?
+    @Option(name: .short, help: ArgumentHelp("GOP size (default: let encoder decide the GOP size)", valueName: "size") )
+    var gopSize: Int?
 
     @Flag(
         name: .long,
@@ -128,7 +128,7 @@ import Upscaling
                                     ?? input.renamed { "\($0) Upscaled" },
             outputSize: outputSize,
             creator: ProcessInfo.processInfo.processName,
-            keyframeIntervalSeconds: keyframeInterval,
+            gopSize: gopSize,
             allowFrameReordering: allowFrameReordering,
             quality: normalizedQuality
         )
