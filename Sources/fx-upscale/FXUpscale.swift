@@ -32,6 +32,8 @@ import Upscaling
     )
     var allowFrameReordering: Bool = false
 
+    @Flag(name: .customLong("prio_speed", withSingleDash: true), help: "prioritize speed over quality")
+    var prioritizeSpeed: Bool = false
     mutating func run() async throws {
         guard ["mov", "m4v", "mp4"].contains(input.pathExtension.lowercased()) else {
             throw ValidationError("Unsupported file type. Supported types: mov, m4v, mp4")
@@ -130,7 +132,8 @@ import Upscaling
             creator: ProcessInfo.processInfo.processName,
             gopSize: gopSize,
             allowFrameReordering: allowFrameReordering,
-            quality: normalizedQuality
+            quality: normalizedQuality,
+            prioritizeSpeed: prioritizeSpeed
         )
 
         CommandLine.info(

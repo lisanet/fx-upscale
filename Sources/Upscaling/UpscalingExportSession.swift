@@ -14,7 +14,8 @@ public class UpscalingExportSession {
         creator: String? = nil,
         gopSize: Int? = nil,
         allowFrameReordering: Bool = false,
-        quality: Double? = nil
+        quality: Double? = nil,
+        prioritizeSpeed: Bool = false
     ) {
         self.asset = asset
         self.outputCodec = outputCodec
@@ -31,6 +32,7 @@ public class UpscalingExportSession {
         self.gopSize = gopSize
         self.allowFrameReordering = allowFrameReordering
         self.quality = quality
+        self.prioritizeSpeed = prioritizeSpeed
         progress = Progress(
             parent: nil,
             userInfo: [
@@ -55,6 +57,7 @@ public class UpscalingExportSession {
     public let gopSize: Int?
     public let allowFrameReordering: Bool
     public let quality: Double?
+    public let prioritizeSpeed: Bool
 
     public let progress: Progress
 
@@ -95,7 +98,8 @@ public class UpscalingExportSession {
                     outputCodec: outputCodec,
                     gopSize: self.gopSize,
                     allowFrameReordering: self.allowFrameReordering,
-                    quality: self.quality
+                    quality: self.quality,
+                    prioritizeSpeed: self.prioritizeSpeed
                 )
             else { continue }
 
@@ -302,7 +306,8 @@ public class UpscalingExportSession {
         outputCodec: AVVideoCodecType?,
         gopSize: Int?,
         allowFrameReordering: Bool,
-        quality: Double?
+        quality: Double?,
+        prioritizeSpeed: Bool
     ) async throws -> AVAssetWriterInput? {
         switch track.mediaType {
         case .video:
@@ -376,7 +381,9 @@ public class UpscalingExportSession {
 
                     // no real time
                     compression[String(kVTCompressionPropertyKey_RealTime)] = false
-                    
+                    // prio speed
+                    compression[String(kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality)] = prioritizeSpeed
+
                     // Profile for broader compatibility (H.264). HEVC profile constants vary; omit for HEVC.
                     if codec == .h264 {
                         compression[AVVideoProfileLevelKey] = AVVideoProfileLevelH264HighAutoLevel
