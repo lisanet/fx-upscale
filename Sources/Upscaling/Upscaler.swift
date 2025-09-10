@@ -228,6 +228,32 @@ extension Upscaler {
         case couldNotCreatePixelBuffer
         case couldNotCreateMetalTexture
         case couldNotMakeCommandBuffer
+                
+        public var errorDescription: String? {
+            switch self {
+            case .unsupportedPixelFormat:
+                return NSLocalizedString(
+                    "Unsupported pixel format",
+                    comment: "Upscaler error description for unsupported pixel format."
+                )
+            case .couldNotCreatePixelBuffer:
+                return NSLocalizedString(
+                    "Could not create pixel buffer",
+                    comment: "Upscaler error description for could not create pixel buffer."
+                    )
+            case .couldNotCreateMetalTexture:
+                return NSLocalizedString(
+                    "Could not create Metal texture",
+                    comment: "Upscaler error description for could not create Metal texture."
+                )
+            case .couldNotMakeCommandBuffer:
+                return NSLocalizedString(
+                    "Could not make command buffer",
+                    comment: "Upscaler error description for could not make command buffer."
+                )
+            }
+        }
+
     }
 }
 
