@@ -223,7 +223,7 @@ public final class Upscaler {
 // MARK: Upscaler.Error
 
 extension Upscaler {
-    enum Error: Swift.Error {
+    enum Error: Swift.Error, LocalizedError {
         case unsupportedPixelFormat
         case couldNotCreatePixelBuffer
         case couldNotCreateMetalTexture
