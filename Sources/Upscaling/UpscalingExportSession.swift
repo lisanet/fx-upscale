@@ -10,6 +10,7 @@ public class UpscalingExportSession {
         asset: AVAsset,
         outputCodec: AVVideoCodecType? = nil,
         preferredOutputURL: URL,
+        inSize: CGSize,
         outputSize: CGSize,
         creator: String? = nil,
         gopSize: Int? = nil,
@@ -28,6 +29,7 @@ public class UpscalingExportSession {
         } else {
             outputURL = preferredOutputURL
         }
+        self.inSize = inSize
         self.outputSize = outputSize
         self.creator = creator
         self.gopSize = gopSize
@@ -54,6 +56,7 @@ public class UpscalingExportSession {
     public let asset: AVAsset
     public let outputCodec: AVVideoCodecType?
     public let outputURL: URL
+    public let inSize: CGSize
     public let outputSize: CGSize
     public let creator: String?
     public let gopSize: Int?
@@ -133,7 +136,7 @@ public class UpscalingExportSession {
                         .spatialVideo(
                             assetReaderOutput,
                             assetWriterInput,
-                            track.load(.naturalSize),
+                            inSize,
                             AVAssetWriterInputTaggedPixelBufferGroupAdaptor(
                                 assetWriterInput: assetWriterInput,
                                 sourcePixelBufferAttributes: [
@@ -150,7 +153,7 @@ public class UpscalingExportSession {
                         .video(
                             assetReaderOutput,
                             assetWriterInput,
-                            track.load(.naturalSize),
+                            inSize,
                             AVAssetWriterInputPixelBufferAdaptor(
                                 assetWriterInput: assetWriterInput,
                                 sourcePixelBufferAttributes: [

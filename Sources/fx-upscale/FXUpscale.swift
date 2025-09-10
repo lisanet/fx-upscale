@@ -57,13 +57,10 @@ import Upscaling
         let videoLength = formatTime(CMTimeGetSeconds(duration))
 
         let formatDescription = try await videoTrack.load(.formatDescriptions).first
-        let dimensions = formatDescription.map {
-            CMVideoFormatDescriptionGetDimensions($0)
-        }.map {
-            CGSize(width: Int($0.width), height: Int($0.height))
+        guard let dimensions = formatDescription.map({ CMVideoFormatDescriptionGetDimensions($0) }) else {
+            throw ValidationError("Failed to determine input video dimensions")
         }
-        let naturalSize = try await videoTrack.load(.naturalSize)
-        let inputSize = dimensions ?? naturalSize
+        let inputSize = CGSize(width: Int(dimensions.width), height: Int(dimensions.height))
 
         // Validate mutually exclusive options
         if scale != nil, (width != nil || height != nil) {
@@ -136,6 +133,7 @@ import Upscaling
             outputCodec: effectiveOutputCodec,
             preferredOutputURL: output.map { URL(fileURLWithPath: $0) }
                                     ?? input.renamed { "\($0) Upscaled" },
+            inSize: inputSize,
             outputSize: outputSize,
             creator: ProcessInfo.processInfo.processName,
             gopSize: gopSize,
