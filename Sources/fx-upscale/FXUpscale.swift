@@ -26,9 +26,9 @@ import Upscaling
     var gopSize: Int?
 
     @Flag(
-        name: .long,
+        name: .customLong("bf", withSingleDash: true),
         help:
-            "Allow frame reordering (B-frames). Defaults to off for HEVC/H.264 to improve scrubbing."
+            "use B-frames. (default: off for HEVC/H.264 to improve scrubbing)"
     )
     var allowFrameReordering: Bool = false
 

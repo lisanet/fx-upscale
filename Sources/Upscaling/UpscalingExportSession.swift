@@ -371,7 +371,12 @@ public class UpscalingExportSession {
 
                     // Disable B-frames by default unless explicitly allowed
                     compression[AVVideoAllowFrameReorderingKey] = allowFrameReordering
+                    // set temporal compression according to b-frames
+                    compression[String(kVTCompressionPropertyKey_AllowTemporalCompression)] = allowFrameReordering
 
+                    // no real time
+                    compression[String(kVTCompressionPropertyKey_RealTime)] = false
+                    
                     // Profile for broader compatibility (H.264). HEVC profile constants vary; omit for HEVC.
                     if codec == .h264 {
                         compression[AVVideoProfileLevelKey] = AVVideoProfileLevelH264HighAutoLevel
