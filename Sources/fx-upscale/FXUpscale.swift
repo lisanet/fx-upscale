@@ -34,6 +34,9 @@ import Upscaling
 
     @Flag(name: .customLong("prio_speed", withSingleDash: true), help: "prioritize speed over quality")
     var prioritizeSpeed: Bool = false
+    @Flag(name: .customShort("y"), help: "overwrite output file")
+    var allowOverWrite: Bool = false
+
     mutating func run() async throws {
         guard ["mov", "m4v", "mp4"].contains(input.pathExtension.lowercased()) else {
             throw ValidationError("Unsupported file type. Supported types: mov, m4v, mp4")
@@ -133,7 +136,8 @@ import Upscaling
             gopSize: gopSize,
             allowFrameReordering: allowFrameReordering,
             quality: normalizedQuality,
-            prioritizeSpeed: prioritizeSpeed
+            prioritizeSpeed: prioritizeSpeed,
+            allowOverWrite: allowOverWrite
         )
 
         CommandLine.info(
