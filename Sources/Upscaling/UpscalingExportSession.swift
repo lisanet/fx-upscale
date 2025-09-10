@@ -132,7 +132,7 @@ public class UpscalingExportSession {
                 if #available(macOS 14.0, iOS 17.0, *),
                     formatDescription?.hasLeftAndRightEye ?? false
                 {
-                    try await mediaTracks.append(
+                    mediaTracks.append(
                         .spatialVideo(
                             assetReaderOutput,
                             assetWriterInput,
@@ -149,7 +149,7 @@ public class UpscalingExportSession {
                             )
                         ))
                 } else {
-                    try await mediaTracks.append(
+                    mediaTracks.append(
                         .video(
                             assetReaderOutput,
                             assetWriterInput,
