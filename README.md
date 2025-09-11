@@ -36,7 +36,7 @@ OPTIONS:
 ## Using B-frames
 If you are using B-frames for your encodings, you might encounter issues with forward skipping in mpv-based players, e.g. IINA. You can fix this in three ways:
 
-1. not using B-frames at all (the worst option :smiley: )
+1. not using B-frames at all (the worst option)
 2. remuxing the upscaled video using ffmpeg
 
 ```
@@ -58,5 +58,5 @@ This effectively tunes constant-quality behavior, similar to CRF/CQ for H.264/HE
 
 ## prio_speed
 
-Using the option `--prio_speed`9 enables the VideoToolbox setting *prioritize speed over quality* `kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality`.
+Using the option `--prio_speed` enables the VideoToolbox setting *'prioritize speed over quality'* `kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality`.
 Although this may not sound preferable, the loss in quality is negligible for most encodings, especially when using the `--quality` option with a reasonable value above ~56. On Apple Silicon Macs, this results in a significant speed improvement.
