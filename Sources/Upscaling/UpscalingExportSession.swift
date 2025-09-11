@@ -387,6 +387,8 @@ public class UpscalingExportSession {
                     compression[AVVideoAllowFrameReorderingKey] = allowFrameReordering
                     // set temporal compression according to b-frames
                     compression[String(kVTCompressionPropertyKey_AllowTemporalCompression)] = allowFrameReordering
+                    // closed GOP
+                    compression[String(kVTCompressionPropertyKey_AllowOpenGOP)] = false
 
                     // no real time
                     compression[String(kVTCompressionPropertyKey_RealTime)] = false
