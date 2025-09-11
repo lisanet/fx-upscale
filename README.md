@@ -20,9 +20,7 @@ OPTIONS:
   -c, --codec <codec>     output codec: 'hevc', 'prores', or 'h264 (default: hevc)
   -q, --quality <quality> encoder quality 0 – 100. Applies to HEVC/H.264
   -g, --gop <size>        GOP size (default: let encoder decide the GOP size)
-  -bf                     use B-frames. (default: off for HEVC/H.264 to improve scrubbing)
-                          If you encounter scrubbing issues, remux the upscaled video, e.g using ffmpeg with this command: 
-                          'ffmpeg -i upscaled_video.mp4 -c copy remuxed.mp4'
+  -bf                     use B-frames. (default: off for HEVC/H.264)
   -prio_speed             prioritize speed over quality
   -y                      overwrite output file
   --version               Show the version.
@@ -33,23 +31,6 @@ OPTIONS:
 > [!NOTE]
 > Extremely large outputs are automatically converted to ProRes 422 and saved as `.mov` to ensure stability and compatibility. Specifically, outputs larger than roughly 118 megapixels (≈14.5K × 8.1K) force ProRes due to encoder limitations with H.264/HEVC at those sizes.
 
-## Using B-frames
-If you are using B-frames for your encodings, you might encounter issues with forward skipping in mpv-based players, e.g. IINA. You can fix this in three ways:
-
-1. not using B-frames at all (the worst option)
-2. remuxing the upscaled video using ffmpeg
-
-```
-ffmpeg -i upscaled.mp4 -c copy remuxed.mp4
-```
-
-3. changing the seek forward command in IINA. Backward skipping works as expected. For IINA and other mpv-based players, you can set the keybinding for the skip-forward action to:
-
-```
-seek 5 relative+exact
-```
-
-See the IINA Wiki: [Why is the seeking time not precise when pressing arrow keys?](https://github.com/iina/iina/wiki/FAQ#why-is-the-seeking-time-not-precise-when-pressing-arrow-keys). There’s also a screenshot of the corresponding settings dialog.
 
 ## Quality
 

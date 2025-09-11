@@ -33,14 +33,7 @@ let version: String = "1.2.5-skl-2"
     @Option(name: [ .short, .customLong("gop")], help: ArgumentHelp("GOP size (default: let encoder decide the GOP size)", valueName: "size") )
     var gopSize: Int?
 
-    @Flag(
-        name: .customLong("bf", withSingleDash: true),
-        help: """
-            use B-frames. (default: off for HEVC/H.264 to improve scrubbing)
-            If you encounter scrubbing issues, remux the upscaled video, e.g using ffmpeg with this command: 
-            'ffmpeg -i upscaled_video.mp4 -c copy remuxed.mp4'
-            """
-    )
+    @Flag(name: .customLong("bf", withSingleDash: true), help: "use B-frames. (default: off for HEVC/H.264)")
     var allowFrameReordering: Bool = false
 
     @Flag(name: .customLong("prio_speed", withSingleDash: true), help: "prioritize speed over quality")
