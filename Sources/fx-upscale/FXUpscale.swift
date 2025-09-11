@@ -6,7 +6,7 @@ import Upscaling
 
 // MARK: - MetalFXUpscale
 
-let version: String = "1.2.5-skl-2"
+let version: String = "2.0.0-skl"
 
 @main struct FXUpscale: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
