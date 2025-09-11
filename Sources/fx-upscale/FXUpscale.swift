@@ -1,34 +1,45 @@
 @preconcurrency import AVFoundation
-import ArgumentParser
+@preconcurrency import ArgumentParser
 import Foundation
 import SwiftTUI
 import Upscaling
 
 // MARK: - MetalFXUpscale
 
+let version: String = "1.2.5-skl-2"
+
 @main struct FXUpscale: AsyncParsableCommand {
-    @Option(name: [.customShort("i"), .customLong("input")], help: "input video file to upscale",
+    static let configuration = CommandConfiguration(
+            abstract: "Metal-based video upscale.",
+            usage: "fx-upscale -i input-file [options]",
+            version: version,
+            helpNames: .long
+        )
+    @Option(name: [.customShort("i"), .customLong("input")], help: "input video file to upscale. This option is required.",
                 transform: URL.init(fileURLWithPath:))
             var input: URL
-    @Option(name: [.customShort("o"), .customLong("output")], help: "output video file path")
+    @Option(name: [.customShort("o"), .customLong("output")], help: "output video file path.\nIf not specified, ' upscaled' is appended to the input file name.")
     var output: String?
-    @Option(name: .shortAndLong, help: "width in pixels of output video")
+    @Option(name: .shortAndLong, help: "width in pixels of output video.\nIf only width is specified, height is calculated proportionally.")
     var width: Int?
-    @Option(name: .shortAndLong, help: "height in pixels of output video")
+    @Option(name: .shortAndLong, help: "height in pixels of output video.\nIf only height is specified, width is calculated proportionally.")
     var height: Int?
-    @Option(name: .shortAndLong, help: ArgumentHelp("scale factor (e.g. 2.0). Overrides width/height", valueName: "factor"))
+    @Option(name: .shortAndLong, help: ArgumentHelp("scale factor (e.g. 2.0). Overrides width/height.\nIf neither width, height nor scale is given, the video is upscaled by factor 2.0", valueName: "factor"))
     var scale: Double?
     @Option(name: .shortAndLong, help: "output codec: 'hevc', 'prores', or 'h264")
     var codec: String = "hevc"
     @Option(name: .shortAndLong, help: "encoder quality 0 – 100. Applies to HEVC/H.264")
     var quality: Int?
-    @Option(name: .short, help: ArgumentHelp("GOP size (default: let encoder decide the GOP size)", valueName: "size") )
+    @Option(name: [ .short, .customLong("gop")], help: ArgumentHelp("GOP size (default: let encoder decide the GOP size)", valueName: "size") )
     var gopSize: Int?
 
     @Flag(
         name: .customLong("bf", withSingleDash: true),
-        help:
-            "use B-frames. (default: off for HEVC/H.264 to improve scrubbing)"
+        help: """
+            use B-frames. (default: off for HEVC/H.264 to improve scrubbing)
+            If you encounter scrubbing issues, remux the upscaled video, e.g using ffmpeg with this command: 
+            'ffmpeg -i upscaled_video.mp4 -c copy remuxed.mp4'
+            """
     )
     var allowFrameReordering: Bool = false
 
@@ -132,7 +143,7 @@ import Upscaling
             asset: asset,
             outputCodec: effectiveOutputCodec,
             preferredOutputURL: output.map { URL(fileURLWithPath: $0) }
-                                    ?? input.renamed { "\($0) Upscaled" },
+                                    ?? input.renamed { "\($0) upscaled" },
             inSize: inputSize,
             outputSize: outputSize,
             creator: ProcessInfo.processInfo.processName,
