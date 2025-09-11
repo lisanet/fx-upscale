@@ -160,7 +160,7 @@ let version: String = "1.2.5-skl-2"
                 "Upscaling: \(Int(inputSize.width))x\(Int(inputSize.height)) ",
                 "to \(Int(outputSize.width))x\(Int(outputSize.height)) ",
             ].joined())
-        CommandLine.info(String("Codec: \(effectiveOutputCodec?.rawValue ?? "hevc")"))
+        CommandLine.info(String("Codec: \(codec.lowercased())"))
         ProgressBar.start(progress: exportSession.progress)
 
         let startTime = Date()
