@@ -18,6 +18,42 @@ struct CropRect: ExpressibleByArgument {
     }
 }
 
+enum FlagBool: ExpressibleByArgument {
+    case yes
+    case no
+
+    init?(argument: String) {
+        switch argument.lowercased() {
+        case "yes", "true", "1":
+            self = .yes
+        case "no", "false", "0":
+            self = .no
+        default:
+            return nil
+        }
+    }
+    var boolValue: Bool {
+        switch self {
+        case .yes: return true
+        case .no: return false
+        }
+    }
+}
+
+
+ actor LogInfo {
+    private var verbose = false
+
+    func setVerbose(_ value: Bool) {
+        verbose = value
+    }
+
+    func info(_ message: String) {
+        guard verbose else { return }
+        CommandLine.info(message)
+    }
+}
+
 @main struct FXUpscale: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Metal-based video upscale.",
@@ -25,10 +61,10 @@ struct CropRect: ExpressibleByArgument {
         version: version,
         helpNames: .long
     )
-    @Option(name: [.customShort("i"), .customLong("input")], help: "input video file to upscale. This option is required.",
+    @Option(name: .shortAndLong, help: "input video file to upscale. This option is required.",
             transform: URL.init(fileURLWithPath:))
     var input: URL
-    @Option(name: [.customShort("o"), .customLong("output")], help: "output video file path.\nIf not specified, ' upscaled' is appended to the input file name.")
+    @Option(name: .shortAndLong, help: "output video file path.\nIf not specified, ' upscaled' is appended to the input file name.")
     var output: String?
     @Option(name: .shortAndLong, help: "width in pixels of output video.\nIf only width is specified, height is calculated proportionally.")
     var width: Int?
@@ -36,7 +72,7 @@ struct CropRect: ExpressibleByArgument {
     var height: Int?
     @Option(name: .shortAndLong, help: ArgumentHelp("scale factor (e.g. 2.0). Overrides width/height.\nIf neither width, height nor scale is given, the video is upscaled by factor 2.0", valueName: "factor"))
     var scale: Double?
-    @Option(name: .long, help: "Crop rectangle 'width:height:left:top'. Applied before upscaling.")
+    @Option(name: [.customShort("r"), .long], help: ArgumentHelp("Crop rectangle 'width:height:left:top'. Applied before upscaling.", valueName: "rect"))
     var crop: CropRect?
     @Option(name: .shortAndLong, help: "output codec: 'hevc', 'prores', or 'h264")
     var codec: String = "hevc"
@@ -45,13 +81,15 @@ struct CropRect: ExpressibleByArgument {
     @Option(name: [.short, .customLong("gop")], help: ArgumentHelp("GOP size (default: let encoder decide the GOP size)", valueName: "size"))
     var gopSize: Int?
 
-    @Flag(name: .customLong("bf", withSingleDash: true), help: "use B-frames. (default: off for HEVC/H.264)")
-    var allowFrameReordering: Bool = false
+    @Option(name: .shortAndLong, help: ArgumentHelp("use B-frames. You can use yes/no, true/false, 1/0", valueName: "bool"))
+    var bframes: FlagBool = .yes
 
-    @Flag(name: .customLong("prio_speed", withSingleDash: true), help: "prioritize speed over quality")
-    var prioritizeSpeed: Bool = false
+    @Option(name: [ .customShort("p"), .customLong("prio_speed")], help: ArgumentHelp("prioritize speed over quality. You can use yes/no, true/false, 1/0", valueName: "bool"))
+    var prioritizeSpeed: FlagBool = .yes
     @Flag(name: .customShort("y"), help: "overwrite output file")
     var allowOverWrite: Bool = false
+    @Flag(name: .shortAndLong, help: "verbose logging")
+    var verbose: Bool = false
 
     mutating func run() async throws {
         guard ["mov", "m4v", "mp4"].contains(input.pathExtension.lowercased()) else {
@@ -149,6 +187,10 @@ struct CropRect: ExpressibleByArgument {
         let effectiveOutputCodec:
             AVVideoCodecType? = convertToProRes ? .proRes422 : requestedOutputCodec
 
+        // Setup logging
+        let logging = LogInfo()
+        await logging.setVerbose(verbose)
+
         // Validate quality range if provided
         var normalizedQuality: Double? = nil
         if let q = quality {
@@ -166,20 +208,32 @@ struct CropRect: ExpressibleByArgument {
             outputSize: outputSize,
             creator: ProcessInfo.processInfo.processName,
             gopSize: gopSize,
-            allowFrameReordering: allowFrameReordering,
+            bframes: bframes.boolValue,
             quality: normalizedQuality,
-            prioritizeSpeed: prioritizeSpeed,
+            prioritizeSpeed: prioritizeSpeed.boolValue,
             allowOverWrite: allowOverWrite,
             crop: cropRect
         )
 
-        CommandLine.info("Video duration: \(videoLength), total frames: \(totalFrames)")
-        CommandLine.info(
+        await logging.info("Video duration: \(videoLength), total frames: \(totalFrames)")
+        await logging.info(
             [
                 "Upscaling: \(Int(inputSize.width))x\(Int(inputSize.height)) ",
                 "to \(Int(outputSize.width))x\(Int(outputSize.height)) ",
             ].joined())
-        CommandLine.info(String("Codec: \(codec.lowercased())"))
+        
+        await logging.info(
+            [
+                "Codec: \(codec.lowercased())",
+                bframes.boolValue ? "bframes" : nil,
+                "quality \(quality.map(String.init) ?? "auto")",
+                gopSize.map { "gop \($0)" },
+            ]
+            .compactMap { $0 }
+            .joined(separator: ", ")
+        )
+        prioritizeSpeed.boolValue ? nil : await logging.info("Prioritize speed: no")
+
         ProgressBar.start(progress: exportSession.progress)
 
         let startTime = Date()
@@ -192,7 +246,7 @@ struct CropRect: ExpressibleByArgument {
 
             ProgressBar.stop()
 
-            CommandLine.info("Encoding time: \(elapsedDuration), fps: \(String(format: "%.2f", encodedFPS))")
+            await logging.info("Encoding time: \(elapsedDuration), fps: \(String(format: "%.2f", encodedFPS))")
             CommandLine.success("Video successfully upscaled!")
         } catch {
             CommandLine.warn(error.localizedDescription)

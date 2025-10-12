@@ -14,7 +14,7 @@ public class UpscalingExportSession {
         outputSize: CGSize,
         creator: String? = nil,
         gopSize: Int? = nil,
-        allowFrameReordering: Bool = false,
+        bframes: Bool,
         quality: Double? = nil,
         prioritizeSpeed: Bool = false,
         allowOverWrite: Bool = false,
@@ -34,7 +34,7 @@ public class UpscalingExportSession {
         self.outputSize = outputSize
         self.creator = creator
         self.gopSize = gopSize
-        self.allowFrameReordering = allowFrameReordering
+        self.bframes = bframes
         self.quality = quality
         self.prioritizeSpeed = prioritizeSpeed
         self.allowOverWrite = allowOverWrite
@@ -62,7 +62,7 @@ public class UpscalingExportSession {
     public let outputSize: CGSize
     public let creator: String?
     public let gopSize: Int?
-    public let allowFrameReordering: Bool
+    public let bframes: Bool
     public let quality: Double?
     public let prioritizeSpeed: Bool
     public let allowOverWrite: Bool
@@ -109,7 +109,7 @@ public class UpscalingExportSession {
                     outputSize: outputSize,
                     outputCodec: outputCodec,
                     gopSize: gopSize,
-                    allowFrameReordering: allowFrameReordering,
+                    bframes: bframes,
                     quality: quality,
                     prioritizeSpeed: prioritizeSpeed
                 )
@@ -319,7 +319,7 @@ public class UpscalingExportSession {
         outputSize: CGSize,
         outputCodec: AVVideoCodecType?,
         gopSize: Int?,
-        allowFrameReordering: Bool,
+        bframes: Bool,
         quality: Double?,
         prioritizeSpeed: Bool
     ) async throws -> AVAssetWriterInput? {
@@ -388,10 +388,10 @@ public class UpscalingExportSession {
                     // GOP size
                     gopSize.map { compression[AVVideoMaxKeyFrameIntervalKey] = $0 }
 
-                    // Disable B-frames by default unless explicitly allowed
-                    compression[AVVideoAllowFrameReorderingKey] = allowFrameReordering
+                    // Enable B-frames by default unless explicitly allowed, see FXUpscale.swift
+                    compression[AVVideoAllowFrameReorderingKey] = bframes
                     // set temporal compression according to b-frames
-                    compression[String(kVTCompressionPropertyKey_AllowTemporalCompression)] = allowFrameReordering
+                    compression[String(kVTCompressionPropertyKey_AllowTemporalCompression)] = bframes
                     // closed GOP
                     compression[String(kVTCompressionPropertyKey_AllowOpenGOP)] = false
 
@@ -407,8 +407,7 @@ public class UpscalingExportSession {
 
                     // Apply user-specified quality if provided (0.0–1.0)
                     if let q = quality {
-                        let clamped = max(0.0, min(1.0, q))
-                        compression[String(kVTCompressionPropertyKey_Quality)] = clamped
+                        compression[String(kVTCompressionPropertyKey_Quality)] = q
                     }
                 }
 
