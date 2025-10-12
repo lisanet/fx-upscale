@@ -12,7 +12,7 @@ import Foundation
 public final class Upscaler {
     // MARK: Lifecycle
 
-    public init?(inputSize: CGSize, outputSize: CGSize) {
+    public init?(inputSize: CGSize, outputSize: CGSize, crop: CGRect? = nil) {
         #if canImport(MetalFX)
             let spatialScalerDescriptor = MTLFXSpatialScalerDescriptor()
             spatialScalerDescriptor.inputSize = inputSize
@@ -27,13 +27,14 @@ public final class Upscaler {
             textureDescriptor.storageMode = .private
             textureDescriptor.usage = [.renderTarget, .shaderRead]
             guard let device = MTLCreateSystemDefaultDevice(),
-                let commandQueue = device.makeCommandQueue(),
-                let spatialScaler = spatialScalerDescriptor.makeSpatialScaler(device: device),
-                let intermediateOutputTexture = device.makeTexture(descriptor: textureDescriptor)
+                  let commandQueue = device.makeCommandQueue(),
+                  let spatialScaler = spatialScalerDescriptor.makeSpatialScaler(device: device),
+                  let intermediateOutputTexture = device.makeTexture(descriptor: textureDescriptor)
             else { return nil }
             self.commandQueue = commandQueue
             self.spatialScaler = spatialScaler
             self.intermediateOutputTexture = intermediateOutputTexture
+            self.crop = crop
             var textureCache: CVMetalTextureCache?
             CVMetalTextureCacheCreate(nil, nil, device, nil, &textureCache)
             guard let textureCache else { return nil }
@@ -147,6 +148,7 @@ public final class Upscaler {
         private let intermediateOutputTexture: MTLTexture
         private let textureCache: CVMetalTextureCache
         private let pixelBufferPool: CVPixelBufferPool
+        private let crop: CGRect?
 
         private func upscaleCommandBuffer(
             _ pixelBuffer: CVPixelBuffer,
@@ -180,7 +182,7 @@ public final class Upscaler {
                 &colorTexture
             )
             guard status == kCVReturnSuccess,
-                let colorTexture = CVMetalTextureGetTexture(colorTexture)
+                let sourceTexture = CVMetalTextureGetTexture(colorTexture)
             else {
                 throw Error.couldNotCreateMetalTexture
             }
@@ -198,7 +200,7 @@ public final class Upscaler {
                 &upscaledTexture
             )
             guard status == kCVReturnSuccess,
-                let upscaledTexture = CVMetalTextureGetTexture(upscaledTexture)
+                  let upscaledTexture = CVMetalTextureGetTexture(upscaledTexture)
             else {
                 throw Error.couldNotCreateMetalTexture
             }
@@ -207,7 +209,34 @@ public final class Upscaler {
                 throw Error.couldNotMakeCommandBuffer
             }
 
-            spatialScaler.colorTexture = colorTexture
+            var finalSourceTexture: MTLTexture = sourceTexture
+            if let cropRect = crop {
+                let cropTextureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+                    pixelFormat: sourceTexture.pixelFormat,
+                    width: Int(cropRect.width),
+                    height: Int(cropRect.height),
+                    mipmapped: false
+                )
+                cropTextureDescriptor.usage = sourceTexture.usage
+                cropTextureDescriptor.storageMode = .private
+
+                guard let croppedTexture = commandQueue.device.makeTexture(descriptor: cropTextureDescriptor) else {
+                    throw Error.couldNotCreateMetalTexture
+                }
+
+                guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
+                    throw Error.couldNotMakeCommandBuffer
+                }
+
+                let origin = MTLOrigin(x: Int(cropRect.origin.x), y: Int(cropRect.origin.y), z: 0)
+                let size = MTLSize(width: Int(cropRect.width), height: Int(cropRect.height), depth: 1)
+                blitEncoder.copy(from: sourceTexture, sourceSlice: 0, sourceLevel: 0, sourceOrigin: origin, sourceSize: size, to: croppedTexture, destinationSlice: 0, destinationLevel: 0, destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
+
+                blitEncoder.endEncoding()
+                finalSourceTexture = croppedTexture
+            }
+
+            spatialScaler.colorTexture = finalSourceTexture
             spatialScaler.outputTexture = intermediateOutputTexture
             spatialScaler.encode(commandBuffer: commandBuffer)
 
@@ -228,7 +257,7 @@ extension Upscaler {
         case couldNotCreatePixelBuffer
         case couldNotCreateMetalTexture
         case couldNotMakeCommandBuffer
-                
+
         public var errorDescription: String? {
             switch self {
             case .unsupportedPixelFormat:
@@ -240,7 +269,7 @@ extension Upscaler {
                 return NSLocalizedString(
                     "Could not create pixel buffer",
                     comment: "Upscaler error description for could not create pixel buffer."
-                    )
+                )
             case .couldNotCreateMetalTexture:
                 return NSLocalizedString(
                     "Could not create Metal texture",
@@ -253,7 +282,6 @@ extension Upscaler {
                 )
             }
         }
-
     }
 }
 

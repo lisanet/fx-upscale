@@ -8,16 +8,26 @@ import Upscaling
 
 let version: String = "2.0.0-skl"
 
+struct CropRect: ExpressibleByArgument {
+    let rect: CGRect
+
+    init?(argument: String) {
+        let parts = argument.split(separator: ":").compactMap { Double($0) }
+        guard parts.count == 4 else { return nil }
+        self.rect = CGRect(x: parts[2], y: parts[3], width: parts[0], height: parts[1])
+    }
+}
+
 @main struct FXUpscale: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-            abstract: "Metal-based video upscale.",
-            usage: "fx-upscale -i input-file [options]",
-            version: version,
-            helpNames: .long
-        )
+        abstract: "Metal-based video upscale.",
+        usage: "fx-upscale -i input-file [options]",
+        version: version,
+        helpNames: .long
+    )
     @Option(name: [.customShort("i"), .customLong("input")], help: "input video file to upscale. This option is required.",
-                transform: URL.init(fileURLWithPath:))
-            var input: URL
+            transform: URL.init(fileURLWithPath:))
+    var input: URL
     @Option(name: [.customShort("o"), .customLong("output")], help: "output video file path.\nIf not specified, ' upscaled' is appended to the input file name.")
     var output: String?
     @Option(name: .shortAndLong, help: "width in pixels of output video.\nIf only width is specified, height is calculated proportionally.")
@@ -26,11 +36,13 @@ let version: String = "2.0.0-skl"
     var height: Int?
     @Option(name: .shortAndLong, help: ArgumentHelp("scale factor (e.g. 2.0). Overrides width/height.\nIf neither width, height nor scale is given, the video is upscaled by factor 2.0", valueName: "factor"))
     var scale: Double?
+    @Option(name: .long, help: "Crop rectangle 'width:height:left:top'. Applied before upscaling.")
+    var crop: CropRect?
     @Option(name: .shortAndLong, help: "output codec: 'hevc', 'prores', or 'h264")
     var codec: String = "hevc"
     @Option(name: .shortAndLong, help: "encoder quality 0 – 100. Applies to HEVC/H.264")
     var quality: Int?
-    @Option(name: [ .short, .customLong("gop")], help: ArgumentHelp("GOP size (default: let encoder decide the GOP size)", valueName: "size") )
+    @Option(name: [.short, .customLong("gop")], help: ArgumentHelp("GOP size (default: let encoder decide the GOP size)", valueName: "size"))
     var gopSize: Int?
 
     @Flag(name: .customLong("bf", withSingleDash: true), help: "use B-frames. (default: off for HEVC/H.264)")
@@ -64,7 +76,20 @@ let version: String = "2.0.0-skl"
         guard let dimensions = formatDescription.map({ CMVideoFormatDescriptionGetDimensions($0) }) else {
             throw ValidationError("Failed to determine input video dimensions")
         }
-        let inputSize = CGSize(width: Int(dimensions.width), height: Int(dimensions.height))
+        let originalInputSize = CGSize(width: Int(dimensions.width), height: Int(dimensions.height))
+        var cropRect: CGRect? = crop?.rect
+
+        // Validate crop rect if provided
+        if let crop = cropRect {
+            guard crop.width > 0, crop.height > 0, crop.origin.x >= 0, crop.origin.y >= 0 else {
+                throw ValidationError("Invalid crop rectangle. All values must be positive.")
+            }
+            guard crop.maxX <= originalInputSize.width, crop.maxY <= originalInputSize.height else {
+                throw ValidationError("Crop rectangle cannot be larger than the input video dimensions.")
+            }
+        }
+
+        let inputSize = cropRect?.size ?? originalInputSize
 
         // Validate mutually exclusive options
         if scale != nil, (width != nil || height != nil) {
@@ -96,7 +121,7 @@ let version: String = "2.0.0-skl"
         }
 
         guard outputWidth <= UpscalingExportSession.maxOutputSize,
-            outputHeight <= UpscalingExportSession.maxOutputSize
+              outputHeight <= UpscalingExportSession.maxOutputSize
         else {
             throw ValidationError("Maximum supported width/height: 16384")
         }
@@ -121,8 +146,8 @@ let version: String = "2.0.0-skl"
             )
         }
 
-        let effectiveOutputCodec: AVVideoCodecType? =
-            convertToProRes ? .proRes422 : requestedOutputCodec
+        let effectiveOutputCodec:
+            AVVideoCodecType? = convertToProRes ? .proRes422 : requestedOutputCodec
 
         // Validate quality range if provided
         var normalizedQuality: Double? = nil
@@ -136,7 +161,7 @@ let version: String = "2.0.0-skl"
             asset: asset,
             outputCodec: effectiveOutputCodec,
             preferredOutputURL: output.map { URL(fileURLWithPath: $0) }
-                                    ?? input.renamed { "\($0) upscaled" },
+                ?? input.renamed { "\($0) upscaled" },
             inSize: inputSize,
             outputSize: outputSize,
             creator: ProcessInfo.processInfo.processName,
@@ -144,7 +169,8 @@ let version: String = "2.0.0-skl"
             allowFrameReordering: allowFrameReordering,
             quality: normalizedQuality,
             prioritizeSpeed: prioritizeSpeed,
-            allowOverWrite: allowOverWrite
+            allowOverWrite: allowOverWrite,
+            crop: cropRect
         )
 
         CommandLine.info("Video duration: \(videoLength), total frames: \(totalFrames)")
@@ -159,13 +185,13 @@ let version: String = "2.0.0-skl"
         let startTime = Date()
         do {
             try await exportSession.export()
-            
+
             let elapsed = Date().timeIntervalSince(startTime)
             let elapsedDuration = formatTime(elapsed)
             let encodedFPS = Double(totalFrames) / elapsed
-            
+
             ProgressBar.stop()
-            
+
             CommandLine.info("Encoding time: \(elapsedDuration), fps: \(String(format: "%.2f", encodedFPS))")
             CommandLine.success("Video successfully upscaled!")
         } catch {
@@ -183,4 +209,3 @@ func formatTime(_ seconds: Double) -> String {
 
     return String(format: "%02d:%02d:%02d.%03d", hours, minutes, secs, milliseconds)
 }
-

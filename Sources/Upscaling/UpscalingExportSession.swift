@@ -17,7 +17,8 @@ public class UpscalingExportSession {
         allowFrameReordering: Bool = false,
         quality: Double? = nil,
         prioritizeSpeed: Bool = false,
-        allowOverWrite: Bool = false
+        allowOverWrite: Bool = false,
+        crop: CGRect? = nil
     ) {
         self.asset = asset
         self.outputCodec = outputCodec
@@ -37,10 +38,11 @@ public class UpscalingExportSession {
         self.quality = quality
         self.prioritizeSpeed = prioritizeSpeed
         self.allowOverWrite = allowOverWrite
+        self.crop = crop
         progress = Progress(
             parent: nil,
             userInfo: [
-                .fileURLKey: outputURL
+                .fileURLKey: outputURL,
             ])
         progress.fileURL = outputURL
         progress.isCancellable = false
@@ -64,6 +66,7 @@ public class UpscalingExportSession {
     public let quality: Double?
     public let prioritizeSpeed: Bool
     public let allowOverWrite: Bool
+    public let crop: CGRect?
 
     public let progress: Progress
 
@@ -105,10 +108,10 @@ public class UpscalingExportSession {
                     formatDescription: formatDescription,
                     outputSize: outputSize,
                     outputCodec: outputCodec,
-                    gopSize: self.gopSize,
-                    allowFrameReordering: self.allowFrameReordering,
-                    quality: self.quality,
-                    prioritizeSpeed: self.prioritizeSpeed
+                    gopSize: gopSize,
+                    allowFrameReordering: allowFrameReordering,
+                    quality: quality,
+                    prioritizeSpeed: prioritizeSpeed
                 )
             else { continue }
 
@@ -130,7 +133,7 @@ public class UpscalingExportSession {
             } else if track.mediaType == .video {
                 progress.totalUnitCount += 10
                 if #available(macOS 14.0, iOS 17.0, *),
-                    formatDescription?.hasLeftAndRightEye ?? false
+                   formatDescription?.hasLeftAndRightEye ?? false
                 {
                     mediaTracks.append(
                         .spatialVideo(
@@ -195,6 +198,7 @@ public class UpscalingExportSession {
                                 adaptor: adaptor,
                                 inputSize: inputSize,
                                 outputSize: self.outputSize,
+                                crop: self.crop,
                                 progress: progress
                             )
                         case let .spatialVideo(output, input, inputSize, adaptor):
@@ -208,6 +212,7 @@ public class UpscalingExportSession {
                                         as! AVAssetWriterInputTaggedPixelBufferGroupAdaptor,
                                     inputSize: inputSize,
                                     outputSize: self.outputSize,
+                                    crop: self.crop,
                                     progress: progress
                                 )
                             }
@@ -285,13 +290,13 @@ public class UpscalingExportSession {
         switch track.mediaType {
         case .video:
             var outputSettings: [String: Any] = [
-                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
+                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
             ]
             if #available(macOS 14.0, iOS 17.0, *),
-                formatDescription?.hasLeftAndRightEye ?? false
+               formatDescription?.hasLeftAndRightEye ?? false
             {
                 outputSettings[AVVideoDecompressionPropertiesKey] = [
-                    kVTDecompressionPropertyKey_RequestedMVHEVCVideoLayerIDs: [0, 1]
+                    kVTDecompressionPropertyKey_RequestedMVHEVCVideoLayerIDs: [0, 1],
                 ]
             }
             let assetReaderOutput = AVAssetReaderTrackOutput(
@@ -326,8 +331,8 @@ public class UpscalingExportSession {
                 AVVideoCodecKey: outputCodec ?? formatDescription?.videoCodecType ?? .hevc,
             ]
             if let colorPrimaries = formatDescription?.colorPrimaries,
-                let colorTransferFunction = formatDescription?.colorTransferFunction,
-                let colorYCbCrMatrix = formatDescription?.colorYCbCrMatrix
+               let colorTransferFunction = formatDescription?.colorTransferFunction,
+               let colorYCbCrMatrix = formatDescription?.colorYCbCrMatrix
             {
                 outputSettings[AVVideoColorPropertiesKey] = [
                     AVVideoColorPrimariesKey: colorPrimaries,
@@ -336,7 +341,7 @@ public class UpscalingExportSession {
                 ]
             }
             if #available(macOS 14.0, iOS 17.0, *),
-                formatDescription?.hasLeftAndRightEye ?? false
+               formatDescription?.hasLeftAndRightEye ?? false
             {
                 var compressionProperties: [CFString: Any] = [:]
                 compressionProperties[kVTCompressionPropertyKey_MVHEVCVideoLayerIDs] = [0, 1]
@@ -412,7 +417,7 @@ public class UpscalingExportSession {
                     let existing =
                         outputSettings[AVVideoCompressionPropertiesKey] as? [String: Any] ?? [:]
                     outputSettings[AVVideoCompressionPropertiesKey] = existing.merging(compression)
-                    { _, new in new }
+                        { _, new in new }
                 }
             }
 
@@ -473,9 +478,10 @@ public class UpscalingExportSession {
         adaptor: AVAssetWriterInputPixelBufferAdaptor,
         inputSize: CGSize,
         outputSize: CGSize,
+        crop: CGRect?,
         progress: Progress
     ) async throws {
-        guard let upscaler = Upscaler(inputSize: inputSize, outputSize: outputSize) else {
+        guard let upscaler = Upscaler(inputSize: inputSize, outputSize: outputSize, crop: crop) else {
             throw Error.failedToCreateUpscaler
         }
         try await withCheckedThrowingContinuation { continuation in
@@ -528,9 +534,10 @@ public class UpscalingExportSession {
         adaptor: AVAssetWriterInputTaggedPixelBufferGroupAdaptor,
         inputSize: CGSize,
         outputSize: CGSize,
+        crop: CGRect?,
         progress: Progress
     ) async throws {
-        guard let upscaler = Upscaler(inputSize: inputSize, outputSize: outputSize) else {
+        guard let upscaler = Upscaler(inputSize: inputSize, outputSize: outputSize, crop: crop) else {
             throw Error.failedToCreateUpscaler
         }
         try await withCheckedThrowingContinuation { continuation in
@@ -557,9 +564,9 @@ public class UpscalingExportSession {
                                     == .stereoView(.rightEye)
                             })?.buffer
                             guard let leftEyeBuffer,
-                                let rightEyeBuffer,
-                                case let .pixelBuffer(leftEyePixelBuffer) = leftEyeBuffer,
-                                case let .pixelBuffer(rightEyePixelBuffer) = rightEyeBuffer
+                                  let rightEyeBuffer,
+                                  case let .pixelBuffer(leftEyePixelBuffer) = leftEyeBuffer,
+                                  case let .pixelBuffer(rightEyePixelBuffer) = rightEyeBuffer
                             else {
                                 assetWriterInput.markAsFinished()
                                 continuation.resume(throwing: Error.invalidTaggedBuffers)
