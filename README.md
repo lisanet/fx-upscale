@@ -58,20 +58,25 @@ There are several ways to install `fx-upscale`
 USAGE: fx-upscale -i input-file [options]
 
 OPTIONS:
-  -i, --input <input>     input video file to upscale (required)
-  -o, --output <output>   output file path (default: adds " upscaled" to input name)
-  -w, --width <width>     output width in pixels
-  -h, --height <height>   output height in pixels
-  -s, --scale <factor>    scale factor (e.g., 2.0). Overrides width/height
-  --crop <crop>           crop rectangle: 'width:height:left:top' (before upscale)
-  -c, --codec <codec>     output codec: 'hevc', 'prores', or 'h264' (default: hevc)
-  -q, --quality <quality> encoder quality 0–100 (HEVC/H.264 only)
-  -g, --gop <size>        GOP size (default: encoder decides)
-  -bf                     use B-frames (default: off for HEVC/H.264)
-  -prio_speed             prioritize speed over quality
+  -i, --input <input>     input video file to upscale. This option is required.
+  -o, --output <output>   output video file path.
+                          If not specified, ' upscaled' is appended to the input file name.
+  -w, --width <width>     width in pixels of output video.
+                          If only width is specified, height is calculated proportionally.
+  -h, --height <height>   height in pixels of output video.
+                          If only height is specified, width is calculated proportionally.
+  -s, --scale <factor>    scale factor (e.g. 2.0). Overrides width/height.
+                          If neither width, height nor scale is given, the video is upscaled by factor 2.0
+  -r, --crop <rect>       Crop rectangle 'width:height:left:top'. Applied before upscaling.
+  -c, --codec <codec>     output codec: 'hevc', 'prores', or 'h264 (default: hevc)
+  -q, --quality <quality> encoder quality 0 – 100. Applies to HEVC/H.264
+  -g, --gop <size>        GOP size (default: let encoder decide the GOP size)
+  -b, --bframes <bool>    use B-frames. You can use yes/no, true/false, 1/0 (default: yes)
+  -p, --prio_speed <bool> prioritize speed over quality. You can use yes/no, true/false, 1/0 (default: yes)
   -y                      overwrite output file
-  --version               show version
-  --help                  show help
+  -v, --verbose           verbose logging
+  --version               Show the version.
+  --help                  Show help information.
 ```
 
 
@@ -88,16 +93,15 @@ The `--quality` option accepts values between **0–100**, mapping directly to V
 This behaves similarly to `CRF/CQ` controls used in `H.264/HEVC`.  
 For **ProRes**, this parameter is ignored.
 
-
-### ⚡ Speed Mode
-
-The `--prio_speed` flag enables VideoToolbox’s `kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality`.  
-
-While this slightly reduces theoretical quality, the visual impact is minimal — and encoding speed improves dramatically, especially on Apple Silicon.  
 For best results, use `--quality` values above **56**. Values above 90 will only increase file size with little or no noticeable visual improvement. 
 
 The recommended value is **60**.
 
+### ⚡ Speed Mode
+
+The `--prio_speed` option sets VideoToolbox’s `kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality`. You can use yes/no, true/false or 1/0 to enable/disable this option. The default is enabled.
+
+While this slightly reduces theoretical quality, the visual impact is minimal — and encoding speed improves dramatically, especially on Apple Silicon.  
 
 ### 🧪 Example
 
@@ -110,13 +114,13 @@ fx-upscale -i input.mp4 -q 80 -o output_4k.mov
 Upscale a PAL video with 720x576 anamorphic encoded video to FullHD non-anamorph 1920x1080 with reasonable high quality and using Speed Mode and B-Frames
 
 ```bash
-fx-upscale -i input.mp4 -width 1920 -height 1080 -q 60 -bf -prio_speed -o output_4k.mov
+fx-upscale -i input.mp4 -width 1920 -height 1080 -q 60 -o output_4k.mov
 ```
 
-Upscale a 1080p letterboxed video, crop it before upscaling to 4K with aspect 2.39:1 and reasonable high quality and using Speed Mode and B-Frames
+Upscale a 1080p letterboxed video, crop it before upscaling to 4K with aspect 2.39:1 and reasonable high quality, disabling Speed Mode and using no B-Frames
 
 ```bash
-fx-upscale -i input.mp4 --crop 1920:800:0:0 -s 2.0 -q 60 -bf -prio_speed -o output_4k.mov
+fx-upscale -i input.mp4 --crop 1920:800:0:0 -s 2.0 -q 60 -bf 0 -prio_speed no -o output_4k.mov
 ```
 
 
