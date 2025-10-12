@@ -97,7 +97,7 @@ For best results, use `--quality` values above **56**. Values above 90 will only
 
 The recommended value is **60**.
 
-### ⚡ Speed Mode
+### ⚡ Speed-priority Mode
 
 The `--prio_speed` option sets VideoToolbox’s `kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality`. You can use yes/no, true/false or 1/0 to enable/disable this option. The default is enabled.
 
@@ -111,13 +111,13 @@ Upscale a 1080p video to 4K with very high quality. The default scaling factor i
 fx-upscale -i input.mp4 -q 80 -o output_4k.mov
 ```
 
-Upscale a PAL video with 720x576 anamorphic encoded video to FullHD non-anamorph 1920x1080 with reasonable high quality and using Speed Mode and B-Frames
+Upscale a PAL video with 720x576 anamorphic encoded video to FullHD non-anamorph 1920x1080 with reasonable high quality and using Speed-priority Mode and B-Frames
 
 ```bash
 fx-upscale -i input.mp4 -width 1920 -height 1080 -q 60 -o output_4k.mov
 ```
 
-Upscale a 1080p letterboxed video, crop it before upscaling to 4K with aspect 2.39:1 and reasonable high quality, disabling Speed Mode and using no B-Frames
+Upscale a 1080p letterboxed video, crop it before upscaling to 4K with aspect 2.39:1 and reasonable high quality, disabling Speed-priority Mode and using no B-Frames
 
 ```bash
 fx-upscale -i input.mp4 --crop 1920:800:0:0 -s 2.0 -q 60 -bf 0 -prio_speed no -o output_4k.mov
