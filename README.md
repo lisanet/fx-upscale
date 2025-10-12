@@ -1,43 +1,135 @@
-# ↕️ fx-upscale
+## 🎞️ fx-upscale – Metal-Powered Video Upscaling
 
-Metal-powered video upscaling
+`fx-upscale` is a fast, Metal-based command-line tool for upscaling videos on macOS — optimized for Apple Silicon and modern GPUs.
 
-## Usage
+
+### ✅ Features
+
+* GPU-accelerated Metal processing for ultra-fast video upscaling  
+* Automatic size calculation (keep aspect ratio if only width or height is given)  
+* Supports `HEVC`, `H.264`, and `ProRes` codecs  
+* Adjustable encoder quality (0-100)  
+* Optional cropping before upscale  
+* Smart fallback to ProRes for very large outputs  
+* Speed-priority mode for faster encoding with minimal quality loss  
+
+### 🚀 Installation
+
+There are several ways to install `fx-upscale`
+
+1. **Downloading the release package**
+
+    The easiest way to install `fx-upscale` is to download the latest release package.
+   After downloading and unpacking the archive (by double-clicking it), you’ll need to remove the quarantine attribute to satisfy Apple’s Gatekeeper and then copy the binary to a folder in your PATH - usually `/usr/local/bin`.
+
+   Assuming the unpacked `fx-upscale` binary is in your **Downloads** folder, run
+
+   ```bash
+    cd ~/Downloads
+    xattr -c fx-upscale
+    sudo cp fx-upscale /usr/local/bin
+    ```
+    
+3. **Compiling from source**
+
+   Clone the repo
+   
+   ```bash
+   git clone https://github.com/lisanet/fx-upscale.git
+   ```
+
+   Then navigate to the directory and build the source
+
+    ```bash
+    cd fx-upscale
+    swift build -c release
+    ```
+
+    The resulting binary will be located in `.build/release/fx-upscale`. Finally, copy it into a directory in your PATH.
+
+   ```bash
+   cp .build/release/fx-upscale /usr/local/bin
+   ```
+
+
+### ⚙️ Usage
 
 ```
 USAGE: fx-upscale -i input-file [options]
 
 OPTIONS:
-  -i, --input <input>     input video file to upscale. This option is required.
-  -o, --output <output>   output video file path.
-                          If not specified, ' upscaled' is appended to the input file name.
-  -w, --width <width>     width in pixels of output video.
-                          If only width is specified, height is calculated proportionally.
-  -h, --height <height>   height in pixels of output video.
-                          If only height is specified, width is calculated proportionally.
-  -s, --scale <factor>    scale factor (e.g. 2.0). Overrides width/height.
-                          If neither width, height nor scale is given, the video is upscaled by factor 2.0
-  -c, --codec <codec>     output codec: 'hevc', 'prores', or 'h264 (default: hevc)
-  -q, --quality <quality> encoder quality 0 – 100. Applies to HEVC/H.264
-  -g, --gop <size>        GOP size (default: let encoder decide the GOP size)
-  -bf                     use B-frames. (default: off for HEVC/H.264)
+  -i, --input <input>     input video file to upscale (required)
+  -o, --output <output>   output file path (default: adds " upscaled" to input name)
+  -w, --width <width>     output width in pixels
+  -h, --height <height>   output height in pixels
+  -s, --scale <factor>    scale factor (e.g., 2.0). Overrides width/height
+  --crop <crop>           crop rectangle: 'width:height:left:top' (before upscale)
+  -c, --codec <codec>     output codec: 'hevc', 'prores', or 'h264' (default: hevc)
+  -q, --quality <quality> encoder quality 0–100 (HEVC/H.264 only)
+  -g, --gop <size>        GOP size (default: encoder decides)
+  -bf                     use B-frames (default: off for HEVC/H.264)
   -prio_speed             prioritize speed over quality
   -y                      overwrite output file
-  --version               Show the version.
-  --help                  Show help information.
+  --version               show version
+  --help                  show help
 ```
 
 
-> [!NOTE]
-> Extremely large outputs are automatically converted to ProRes 422 and saved as `.mov` to ensure stability and compatibility. Specifically, outputs larger than roughly 118 megapixels (≈14.5K × 8.1K) force ProRes due to encoder limitations with H.264/HEVC at those sizes.
+### ℹ️ Note
+
+> **Large outputs:**  
+> Videos exceeding ~118 megapixels (≈14.5K × 8.1K) are automatically encoded as **ProRes 422** and saved as `.mov` for stability and compatibility.  
+> This avoids known encoder limits with `H.264` and `HEVC`.
 
 
-## Quality
+### 🌟 Quality
 
-When specifying `--quality`, values between 0 and 100 are accepted and mapped to VideoToolbox's `kVTCompressionPropertyKey_Quality`.
-This effectively tunes constant-quality behavior, similar to CRF/CQ for H.264/HEVC via VideoToolbox. For ProRes, this setting is ignored.
+The `--quality` option accepts values between **0–100**, mapping directly to VideoToolbox’s `kVTCompressionPropertyKey_Quality`.
+This behaves similarly to `CRF/CQ` controls used in `H.264/HEVC`.  
+For **ProRes**, this parameter is ignored.
 
-## prio_speed
 
-Using the option `--prio_speed` enables the VideoToolbox setting *'prioritize speed over quality'* `kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality`.
-Although this may not sound preferable, the loss in quality is negligible for most encodings, especially when using the `--quality` option with a reasonable value above ~56. On Apple Silicon Macs, this results in a significant speed improvement.
+### ⚡ Speed Mode
+
+The `--prio_speed` flag enables VideoToolbox’s `kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality`.  
+
+While this slightly reduces theoretical quality, the visual impact is minimal — and encoding speed improves dramatically, especially on Apple Silicon.  
+For best results, use `--quality` values above **56**. Values above 90 will only increase file size with little or no noticeable visual improvement. 
+
+The recommended value is **60**.
+
+
+### 🧪 Example
+
+Upscale a 1080p video to 4K with very high quality. The default scaling factor is 2.0.
+
+```bash
+fx-upscale -i input.mp4 -q 80 -o output_4k.mov
+```
+
+Upscale a PAL video with 720x576 anamorphic encoded video to FullHD non-anamorph 1920x1080 with reasonable high quality and using Speed Mode and B-Frames
+
+```bash
+fx-upscale -i input.mp4 -width 1920 -height 1080 -q 60 -bf -prio_speed -o output_4k.mov
+```
+
+Upscale a 1080p letterboxed video, crop it before upscaling to 4K with aspect 2.39:1 and reasonable high quality and using Speed Mode and B-Frames
+
+```bash
+fx-upscale -i input.mp4 --crop 1920:800:0:0 -s 2.0 -q 60 -bf -prio_speed -o output_4k.mov
+```
+
+
+### 📬 License
+
+CC0 1.0 Universal – feel free to use, modify, and distribute.
+
+
+### 🤝 Contributing
+
+Contributions, bug reports, and feature requests are welcome. Please open an issue or submit a pull request if you have any improvements or suggestions.
+
+### ⚠️ Disclaimer
+
+`fx-upscale` is provided **'as is'** without any warranty.  
+Use at your own risk and ensure you have backups of your original media.
