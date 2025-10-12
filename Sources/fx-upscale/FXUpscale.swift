@@ -77,7 +77,7 @@ struct CropRect: ExpressibleByArgument {
             throw ValidationError("Failed to determine input video dimensions")
         }
         let originalInputSize = CGSize(width: Int(dimensions.width), height: Int(dimensions.height))
-        var cropRect: CGRect? = crop?.rect
+        let cropRect: CGRect? = crop?.rect
 
         // Validate crop rect if provided
         if let crop = cropRect {
