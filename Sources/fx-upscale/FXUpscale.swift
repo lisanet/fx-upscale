@@ -6,7 +6,7 @@ import Upscaling
 
 // MARK: - MetalFXUpscale
 
-let version: String = "2.1.0-skl"
+let version: String = "2.1.1-skl"
 
 struct CropRect: ExpressibleByArgument {
     let rect: CGRect
@@ -214,14 +214,18 @@ enum FlagBool: ExpressibleByArgument {
             allowOverWrite: allowOverWrite,
             crop: cropRect
         )
-
+ 
         await logging.info("Video duration: \(videoLength), total frames: \(totalFrames)")
-        await logging.info(
-            [
-                "Upscaling: \(Int(inputSize.width))x\(Int(inputSize.height)) ",
-                "to \(Int(outputSize.width))x\(Int(outputSize.height)) ",
-            ].joined())
-        
+        if let crop = cropRect { 
+            await logging.info(
+                [ 
+                    "Cropping: \(Int(originalInputSize.width))x\(Int(originalInputSize.height))",
+                    " to \(Int(crop.width))x\(Int(crop.height))",
+                    " at (\(Int(crop.origin.x)),\(Int(crop.origin.y)))" 
+                ].joined()
+            )
+        }           
+        await logging.info("Upscaling: \(Int(inputSize.width))x\(Int(inputSize.height)) to \(Int(outputSize.width))x\(Int(outputSize.height))")
         await logging.info(
             [
                 "Codec: \(codec.lowercased())",
