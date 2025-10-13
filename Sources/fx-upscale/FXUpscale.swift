@@ -41,16 +41,15 @@ enum FlagBool: ExpressibleByArgument {
 }
 
 
- actor LogInfo {
-    private var verbose = false
+actor LogInfo {
+    private var verbose = true
 
     func setVerbose(_ value: Bool) {
         verbose = value
     }
 
     func info(_ message: String) {
-        guard verbose else { return }
-        CommandLine.info(message)
+        verbose ? CommandLine.info(message) : nil
     }
 }
 
@@ -80,16 +79,14 @@ enum FlagBool: ExpressibleByArgument {
     var quality: Int?
     @Option(name: [.short, .customLong("gop")], help: ArgumentHelp("GOP size (default: let encoder decide the GOP size)", valueName: "size"))
     var gopSize: Int?
-
     @Option(name: .shortAndLong, help: ArgumentHelp("use B-frames. You can use yes/no, true/false, 1/0", valueName: "bool"))
     var bframes: FlagBool = .yes
-
     @Option(name: [ .customShort("p"), .customLong("prio_speed")], help: ArgumentHelp("prioritize speed over quality. You can use yes/no, true/false, 1/0", valueName: "bool"))
     var prioritizeSpeed: FlagBool = .yes
     @Flag(name: .customShort("y"), help: "overwrite output file")
     var allowOverWrite: Bool = false
-    @Flag(name: .shortAndLong, help: "verbose logging")
-    var verbose: Bool = false
+    @Flag(name: .long, help: "disable logging")
+    var quiet: Bool = false
 
     mutating func run() async throws {
         guard ["mov", "m4v", "mp4"].contains(input.pathExtension.lowercased()) else {
@@ -189,7 +186,7 @@ enum FlagBool: ExpressibleByArgument {
 
         // Setup logging
         let logging = LogInfo()
-        await logging.setVerbose(verbose)
+        await logging.setVerbose(!quiet)
 
         // Validate quality range if provided
         var normalizedQuality: Double? = nil
