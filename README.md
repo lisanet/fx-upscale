@@ -74,7 +74,7 @@ OPTIONS:
   -b, --bframes <bool>    use B-frames. You can use yes/no, true/false, 1/0 (default: yes)
   -p, --prio_speed <bool> prioritize speed over quality. You can use yes/no, true/false, 1/0 (default: yes)
   -y                      overwrite output file
-  -v, --verbose           verbose logging
+  --quiet                 disable logging
   --version               Show the version.
   --help                  Show help information.
 ```
@@ -108,19 +108,19 @@ While this slightly reduces theoretical quality, the visual impact is minimal â€
 Upscale a 1080p video to 4K with very high quality. The default scaling factor is 2.0. Verbose output.
 
 ```bash
-fx-upscale -i input.mp4 -q 80 -v -o output_4k.mov
+fx-upscale -i input.mp4 -q 80 -o output_4k.mov
 ```
 
-Upscale a PAL video with 720x576 anamorphic encoded video to FullHD non-anamorph 1920x1080 with reasonable high quality and using Speed-priority Mode and B-Frames
+Upscale a PAL video with 720x576 anamorphic encoded video to FullHD non-anamorph 1920x1080 with reasonable high quality and using Speed-priority Mode and B-Frames. Be quiet, no info output
 
 ```bash
-fx-upscale -i input.mp4 -width 1920 -height 1080 -q 60 -o output_4k.mov
+fx-upscale -i input.mp4 -width 1920 -height 1080 -q 60 --quiet -o output_4k.mov
 ```
 
 Upscale a 1080p letterboxed video, crop it before upscaling to 4K with aspect 2.39:1 and reasonable high quality, disabling Speed-priority Mode and using no B-Frames, verbose output
 
 ```bash
-fx-upscale -i input.mp4 --crop 1920:800:0:0 -s 2.0 -q 60 -b 0 --prio_speed no -v -o output_4k.mov
+fx-upscale -i input.mp4 --crop 1920:800:0:0 -s 2.0 -q 60 -b 0 --prio_speed no -o output_4k.mov
 ```
 
 
