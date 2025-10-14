@@ -75,8 +75,8 @@ actor LogInfo {
     var crop: CropRect?
     @Option(name: .shortAndLong, help: "output codec: 'hevc', 'prores', or 'h264")
     var codec: String = "hevc"
-    @Option(name: .shortAndLong, help: "encoder quality 0 – 100. Applies to HEVC/H.264")
-    var quality: Int?
+    @Option(name: .shortAndLong, help: "encoder quality 0 – 100. Applies to HEVC/H.264, ProRes is always lossless")
+    var quality: Int = 58
     @Option(name: [.short, .customLong("gop")], help: ArgumentHelp("GOP size (default: let encoder decide the GOP size)", valueName: "size"))
     var gopSize: Int?
     @Option(name: .shortAndLong, help: ArgumentHelp("use B-frames. You can use yes/no, true/false, 1/0", valueName: "bool"))
@@ -189,13 +189,11 @@ actor LogInfo {
         await logging.setVerbose(!quiet)
 
         // Validate quality range if provided
-        var normalizedQuality: Double? = nil
-        if let q = quality {
-            guard (0...100).contains(q) else {
-                throw ValidationError("--quality must be between 0 and 100")
-            }
-            normalizedQuality = Double(q) / 100.0
+        var normalizedQuality: Double
+        guard (0...100).contains(quality) else {
+            throw ValidationError("--quality must be between 0 and 100")
         }
+        normalizedQuality = Double(quality) / 100.0
         let exportSession = UpscalingExportSession(
             asset: asset,
             outputCodec: effectiveOutputCodec,
@@ -227,7 +225,7 @@ actor LogInfo {
             [
                 "Codec: \(codec.lowercased())",
                 bframes.boolValue ? "bframes" : nil,
-                "quality \(quality.map(String.init) ?? "auto")",
+                "quality \(quality)",
                 gopSize.map { "gop \($0)" },
             ]
             .compactMap { $0 }

@@ -69,7 +69,7 @@ OPTIONS:
                           If neither width, height nor scale is given, the video is upscaled by factor 2.0
   -r, --crop <rect>       Crop rectangle 'width:height:left:top'. Applied before upscaling.
   -c, --codec <codec>     output codec: 'hevc', 'prores', or 'h264 (default: hevc)
-  -q, --quality <quality> encoder quality 0 – 100. Applies to HEVC/H.264
+  -q, --quality <quality> encoder quality 0 – 100. Applies to HEVC/H.264, ProRes is always lossless (default: 58)
   -g, --gop <size>        GOP size (default: let encoder decide the GOP size)
   -b, --bframes <bool>    use B-frames. You can use yes/no, true/false, 1/0 (default: yes)
   -p, --prio_speed <bool> prioritize speed over quality. You can use yes/no, true/false, 1/0 (default: yes)
@@ -93,9 +93,9 @@ The `--quality` option accepts values between **0–100**, mapping directly to V
 This behaves similarly to `CRF/CQ` controls used in `H.264/HEVC`.  
 For **ProRes**, this parameter is ignored.
 
-For best results, use `--quality` values above **56**. Values above 90 will only increase file size with little or no noticeable visual improvement. 
+For best results, use `--quality` values above **58**. Values above 90 will only increase file size with little or no noticeable visual improvement. 
 
-The recommended value is **60**.
+The recommended value is **58**.
 
 ### ⚡ Speed-priority Mode
 
@@ -111,10 +111,10 @@ Upscale a 1080p video to 4K with very high quality. The default scaling factor i
 fx-upscale -i input.mp4 -q 80 -o output_4k.mov
 ```
 
-Upscale a PAL video with 720x576 anamorphic encoded video to FullHD non-anamorph 1920x1080 with reasonable high quality and using Speed-priority Mode and B-Frames. Be quiet, no info output
+Upscale a PAL video with 720x576 anamorphic encoded video to FullHD non-anamorph 1920x1080 with reasonable high quality (58) and using Speed-priority Mode and B-Frames. Be quiet, no info output
 
 ```bash
-fx-upscale -i input.mp4 -width 1920 -height 1080 -q 60 --quiet -o output_4k.mov
+fx-upscale -i input.mp4 -width 1920 -height 1080 --quiet -o output_4k.mov
 ```
 
 Upscale a 1080p letterboxed video, crop it before upscaling to 4K with aspect 2.39:1 and reasonable high quality, disabling Speed-priority Mode and using no B-Frames, verbose output

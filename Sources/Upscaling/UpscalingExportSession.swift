@@ -15,7 +15,7 @@ public class UpscalingExportSession {
         creator: String? = nil,
         gopSize: Int? = nil,
         bframes: Bool,
-        quality: Double? = nil,
+        quality: Double,
         prioritizeSpeed: Bool = false,
         allowOverWrite: Bool = false,
         crop: CGRect? = nil
@@ -63,7 +63,7 @@ public class UpscalingExportSession {
     public let creator: String?
     public let gopSize: Int?
     public let bframes: Bool
-    public let quality: Double?
+    public let quality: Double
     public let prioritizeSpeed: Bool
     public let allowOverWrite: Bool
     public let crop: CGRect?
@@ -320,7 +320,7 @@ public class UpscalingExportSession {
         outputCodec: AVVideoCodecType?,
         gopSize: Int?,
         bframes: Bool,
-        quality: Double?,
+        quality: Double,
         prioritizeSpeed: Bool
     ) async throws -> AVAssetWriterInput? {
         switch track.mediaType {
@@ -405,10 +405,8 @@ public class UpscalingExportSession {
                         compression[AVVideoProfileLevelKey] = AVVideoProfileLevelH264HighAutoLevel
                     }
 
-                    // Apply user-specified quality if provided (0.0–1.0)
-                    if let q = quality {
-                        compression[String(kVTCompressionPropertyKey_Quality)] = q
-                    }
+                    // Apply quality (0.0–1.0)
+                    compression[String(kVTCompressionPropertyKey_Quality)] = quality
                 }
 
                 if !compression.isEmpty {
