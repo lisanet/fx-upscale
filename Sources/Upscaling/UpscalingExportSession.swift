@@ -337,12 +337,13 @@ public class UpscalingExportSession {
             // calculate pixel aspect ratio, ffmpeg names this SAR (sample aspect ratio), we do the same
             let origSAR = formatDescription?.pixelAspectRatio ?? CGSize(width: 1, height: 1)
             let inputDIM = reducedAspectRatio(inSize)
-            let outputDAR = reducedAspectRatio(outputSize)
+            let outputDIM = reducedAspectRatio(outputSize)
             // new SAR = origSAR * inputDIM / outputDAR
             let newSAR = reducedAspectRatio( CGSize(
-                width: origSAR.width * inputDIM.width * outputDAR.height, 
-                height: origSAR.height * inputDIM.height * outputDAR.width
+                width: origSAR.width * inputDIM.width * outputDIM.height, 
+                height: origSAR.height * inputDIM.height * outputDIM.width
             ))
+            print("New SAR: \(Int(newSAR.width)):\(Int(newSAR.height))")
             outputSettings[AVVideoPixelAspectRatioKey] = [
                 AVVideoPixelAspectRatioHorizontalSpacingKey: Int(newSAR.width),
                 AVVideoPixelAspectRatioVerticalSpacingKey: Int(newSAR.height),
