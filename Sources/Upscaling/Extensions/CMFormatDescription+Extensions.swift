@@ -75,4 +75,18 @@ extension CMFormatDescription {
         }
         return hasLeftEye && hasRightEye
     }
+
+    var pixelAspectRatio: CGSize? {
+        guard let pixelAspectRatio = extensions[
+            kCMFormatDescriptionExtension_PixelAspectRatio
+        ] as? [CFString: Any] else { return nil }
+        guard let horizontalSpacing = pixelAspectRatio[
+            kCMFormatDescriptionKey_PixelAspectRatioHorizontalSpacing
+            ] as? Int,
+            let verticalSpacing = pixelAspectRatio[
+                kCMFormatDescriptionKey_PixelAspectRatioVerticalSpacing
+            ] as? Int
+        else { return nil }
+        return CGSize(width: horizontalSpacing, height: verticalSpacing)
+    }
 }

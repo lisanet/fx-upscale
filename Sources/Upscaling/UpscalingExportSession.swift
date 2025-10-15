@@ -106,6 +106,7 @@ public class UpscalingExportSession {
                 let assetWriterInput = try await Self.assetWriterInput(
                     for: track,
                     formatDescription: formatDescription,
+                    inSize: inSize,
                     outputSize: outputSize,
                     outputCodec: outputCodec,
                     gopSize: gopSize,
@@ -316,6 +317,7 @@ public class UpscalingExportSession {
     private static func assetWriterInput(
         for track: AVAssetTrack,
         formatDescription: CMFormatDescription?,
+        inSize: CGSize,
         outputSize: CGSize,
         outputCodec: AVVideoCodecType?,
         gopSize: Int?,
@@ -330,6 +332,22 @@ public class UpscalingExportSession {
                 AVVideoHeightKey: outputSize.height,
                 AVVideoCodecKey: outputCodec ?? formatDescription?.videoCodecType ?? .hevc,
             ]
+
+            // Handle pixel aspect ratio
+            // calculate pixel aspect ratio, ffmpeg names this SAR (sample aspect ratio), we do the same
+            let origSAR = formatDescription?.pixelAspectRatio ?? CGSize(width: 1, height: 1)
+            let inputDIM = reducedAspectRatio(inSize)
+            let outputDAR = reducedAspectRatio(outputSize)
+            // new SAR = origSAR * inputDIM / outputDAR
+            let newSAR = reducedAspectRatio( CGSize(
+                width: origSAR.width * inputDIM.width * outputDAR.height, 
+                height: origSAR.height * inputDIM.height * outputDAR.width
+            ))
+            outputSettings[AVVideoPixelAspectRatioKey] = [
+                AVVideoPixelAspectRatioHorizontalSpacingKey: Int(newSAR.width),
+                AVVideoPixelAspectRatioVerticalSpacingKey: Int(newSAR.height),
+            ]
+
             if let colorPrimaries = formatDescription?.colorPrimaries,
                let colorTransferFunction = formatDescription?.colorTransferFunction,
                let colorYCbCrMatrix = formatDescription?.colorYCbCrMatrix
@@ -609,6 +627,20 @@ public class UpscalingExportSession {
             }
         } as Void
     }
+
+    private static func gcd(_ a: Int, _ b: Int) -> Int {
+        var (a, b) = (a, b)
+        while b != 0 {
+            (a, b) = (b, a % b)
+        }
+        return abs(a)
+    }
+
+    private static func reducedAspectRatio(_ size: CGSize) -> CGSize {
+        let gcd = Self.gcd(Int(size.width), Int(size.height))
+        return CGSize(width: Int(size.width) / gcd, height: Int(size.height) / gcd)
+    }
+
 }
 
 // MARK: UpscalingExportSession.Error
