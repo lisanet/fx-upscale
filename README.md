@@ -66,8 +66,8 @@ OPTIONS:
   -h, --height <height>   height in pixels of output video.
                           If only height is specified, width is calculated proportionally.
   -s, --scale <factor>    scale factor (e.g. 2.0). Overrides width/height. 
-                          If neither width, height nor scale is given, the video is upscaled by factor 2.0
-  -t, --target <preset>   Crop to target resolution <preset>. Applied before upscaling.
+                          If neither target, width, height nor scale is given, the video is upscaled by factor 2.0
+  -t, --target <preset>   Scale to target resolution <preset>. 
                           Presets are: 'fhd' (1920x1080), ' qhd' or 'wqhd' (2160x1440), '4k' or 'uhd' (3840x2160),  '8k' (7680x4320)
   -r, --crop <rect>       Crop rectangle 'width:height:left:top'. Applied before upscaling.
   -c, --codec <codec>     output codec: 'hevc', 'prores', or 'h264 (default: hevc)
@@ -78,7 +78,8 @@ OPTIONS:
   -y                      overwrite output file
   --quiet                 disable logging
   --version               Show the version.
-  --help                  Show help information.```
+  --help                  Show help information.
+  ```
 
 
 ### ℹ️ Note

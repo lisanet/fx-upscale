@@ -6,7 +6,7 @@ import Upscaling
 
 // MARK: - MetalFXUpscale
 
-let version: String = "2.2.0-skl"
+let version: String = "2.2.1-skl"
 
 struct CropRect: ExpressibleByArgument {
     let rect: CGRect
@@ -105,11 +105,11 @@ actor LogInfo {
     var height: Int?
     @Option(name: .shortAndLong, help: ArgumentHelp("""
                     scale factor (e.g. 2.0). Overrides width/height. 
-                    If neither width, height nor scale is given, the video is upscaled by factor 2.0
+                    If neither target, width, height nor scale is given, the video is upscaled by factor 2.0
                     """, valueName: "factor"))
     var scale: Double?
     @Option(name: .shortAndLong, help: ArgumentHelp("""
-                    Crop to target resolution <preset>. Applied before upscaling.
+                    Scale to target resolution <preset>. 
                     Presets are: 'fhd' (1920x1080), ' qhd' or 'wqhd' (2160x1440), '4k' or 'uhd' (3840x2160),  '8k' (7680x4320)
                     """, valueName: "preset"))
     var target: TargetResolution?
