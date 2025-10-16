@@ -65,8 +65,10 @@ OPTIONS:
                           If only width is specified, height is calculated proportionally.
   -h, --height <height>   height in pixels of output video.
                           If only height is specified, width is calculated proportionally.
-  -s, --scale <factor>    scale factor (e.g. 2.0). Overrides width/height.
+  -s, --scale <factor>    scale factor (e.g. 2.0). Overrides width/height. 
                           If neither width, height nor scale is given, the video is upscaled by factor 2.0
+  -t, --target <preset>   Crop to target resolution <preset>. Applied before upscaling.
+                          Presets are: 'fhd' (1920x1080), ' qhd' or 'wqhd' (2160x1440), '4k' or 'uhd' (3840x2160),  '8k' (7680x4320)
   -r, --crop <rect>       Crop rectangle 'width:height:left:top'. Applied before upscaling.
   -c, --codec <codec>     output codec: 'hevc', 'prores', or 'h264 (default: hevc)
   -q, --quality <quality> encoder quality 0 – 100. Applies to HEVC/H.264, ProRes is always lossless (default: 58)
@@ -76,8 +78,7 @@ OPTIONS:
   -y                      overwrite output file
   --quiet                 disable logging
   --version               Show the version.
-  --help                  Show help information.
-```
+  --help                  Show help information.```
 
 
 ### ℹ️ Note
@@ -120,7 +121,7 @@ fx-upscale -i input.mp4 -width 1920 -height 1080 --quiet -o output_4k.mov
 Upscale a 1080p letterboxed video, crop it before upscaling to 4K with aspect 2.39:1 and reasonable high quality, disabling Speed-priority Mode and using no B-Frames, verbose output
 
 ```bash
-fx-upscale -i input.mp4 --crop 1920:800:0:0 -s 2.0 -q 60 -b 0 --prio_speed no -o output_4k.mov
+fx-upscale -i input.mp4 --crop 1920:800:0:0 -t 4k -q 60 -b 0 --prio_speed no -o output_4k.mov
 ```
 
 

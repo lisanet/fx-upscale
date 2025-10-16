@@ -6,7 +6,7 @@ import Upscaling
 
 // MARK: - MetalFXUpscale
 
-let version: String = "2.1.1-skl"
+let version: String = "2.2.0-skl"
 
 struct CropRect: ExpressibleByArgument {
     let rect: CGRect
