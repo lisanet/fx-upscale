@@ -76,7 +76,7 @@ extension CMFormatDescription {
         return hasLeftEye && hasRightEye
     }
 
-    var pixelAspectRatio: CGSize? {
+    public var pixelAspectRatio: CGSize? {
         guard let pixelAspectRatio = extensions[
             kCMFormatDescriptionExtension_PixelAspectRatio
         ] as? [CFString: Any] else { return nil }
