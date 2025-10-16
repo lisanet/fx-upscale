@@ -343,7 +343,6 @@ public class UpscalingExportSession {
                 width: origSAR.width * inputDIM.width * outputDIM.height, 
                 height: origSAR.height * inputDIM.height * outputDIM.width
             ))
-            print("New SAR: \(Int(newSAR.width)):\(Int(newSAR.height))")
             outputSettings[AVVideoPixelAspectRatioKey] = [
                 AVVideoPixelAspectRatioHorizontalSpacingKey: Int(newSAR.width),
                 AVVideoPixelAspectRatioVerticalSpacingKey: Int(newSAR.height),
