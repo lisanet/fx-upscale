@@ -48,7 +48,7 @@ There are several ways to install `fx-upscale`
     The resulting binary will be located in `.build/release/fx-upscale`. Finally, copy it into a directory in your PATH.
 
    ```bash
-   cp .build/release/fx-upscale /usr/local/bin
+   sudo cp .build/release/fx-upscale /usr/local/bin
    ```
 
 
