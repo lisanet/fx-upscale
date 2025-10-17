@@ -319,19 +319,6 @@ func formatTime(_ seconds: Double) -> String {
     return String(format: "%02d:%02d:%02d.%03d", hours, minutes, secs, milliseconds)
 }
 
-func gcd(_ a: Int, _ b: Int) -> Int {
-    var (a, b) = (a, b)
-    while b != 0 {
-        (a, b) = (b, a % b)
-    }
-    return abs(a)
-}
-
-func reducedAspectRatio(_ size: CGSize) -> CGSize {
-    let gcd = gcd(Int(size.width), Int(size.height))
-    return CGSize(width: size.width / CGFloat(gcd), height: size.height / CGFloat(gcd))
-}
-
 func getOutputSize(inputDIM: CGSize, origSAR: CGSize, maxDIM: CGSize) -> CGSize {
     let origDAR = reducedAspectRatio (CGSize(
         width: inputDIM.width * origSAR.width, 
