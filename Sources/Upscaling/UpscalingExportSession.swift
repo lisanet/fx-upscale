@@ -627,9 +627,8 @@ public class UpscalingExportSession {
             }
         } as Void
     }
-}
 
-    public func gcd(_ a: Int, _ b: Int) -> Int {
+    private static func gcd(_ a: Int, _ b: Int) -> Int {
         var (a, b) = (a, b)
         while b != 0 {
             (a, b) = (b, a % b)
@@ -637,10 +636,11 @@ public class UpscalingExportSession {
         return abs(a)
     }
 
-    public func reducedAspectRatio(_ size: CGSize) -> CGSize {
+    private static func reducedAspectRatio(_ size: CGSize) -> CGSize {
         let gcd = gcd(Int(size.width), Int(size.height))
         return CGSize(width: Int(size.width) / gcd, height: Int(size.height) / gcd)
     }
+}
 
 // MARK: UpscalingExportSession.Error
 
