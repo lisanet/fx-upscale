@@ -320,19 +320,14 @@ func formatTime(_ seconds: Double) -> String {
 }
 
 func getOutputSize(inputDIM: CGSize, origSAR: CGSize, maxDIM: CGSize) -> CGSize {
-    let origDAR = reducedAspectRatio (CGSize(
-        width: inputDIM.width * origSAR.width, 
-        height: inputDIM.height * origSAR.height)
-        )
     var newWidth: CGFloat
     var newHeight: CGFloat
-    
-    
+        
     newWidth = maxDIM.width * origSAR.height / origSAR.width
     newHeight = newWidth / inputDIM.width * inputDIM.height
     if newHeight > maxDIM.height {
         newHeight = maxDIM.height
-        newWidth = newHeight * origDAR.width / origDAR.height / (origSAR.width / origSAR.height)
+        newWidth = newHeight * inputDIM.width / inputDIM.height
     }
     // ensure even dimensions, always round down to avoid exceeding maxDIM
     return CGSize(width: floor(newWidth / 2) * 2, height: floor(newHeight / 2) * 2)
