@@ -61,6 +61,7 @@ OPTIONS:
   -i, --input <input>     input video file to upscale. This option is required.
   -o, --output <output>   output video file path.
                           If not specified, ' upscaled' is appended to the input file name.
+  -a, --noaudio           Disable audio processing. The output file will have no audio tracks.
   -w, --width <width>     width in pixels of output video.
                           If only width is specified, height is calculated proportionally.
   -h, --height <height>   height in pixels of output video.
