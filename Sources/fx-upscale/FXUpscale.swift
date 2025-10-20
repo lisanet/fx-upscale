@@ -99,6 +99,8 @@ actor LogInfo {
     var input: URL
     @Option(name: .shortAndLong, help: "output video file path.\nIf not specified, ' upscaled' is appended to the input file name.")
     var output: String?
+    @Flag(name: [ .customShort("a"), .long ], help: "Disable audio processing. The output file will have no audio tracks.")
+    var noaudio: Bool = false
     @Option(name: .shortAndLong, help: "width in pixels of output video.\nIf only width is specified, height is calculated proportionally.")
     var width: Int?
     @Option(name: .shortAndLong, help: "height in pixels of output video.\nIf only height is specified, width is calculated proportionally.")
@@ -263,7 +265,8 @@ actor LogInfo {
             quality: normalizedQuality,
             prioritizeSpeed: prioritizeSpeed.boolValue,
             allowOverWrite: allowOverWrite,
-            crop: cropRect
+            crop: cropRect,
+            processAudio: !noaudio
         )
  
         await logging.info("Video duration: \(videoLength), total frames: \(totalFrames)")

@@ -18,7 +18,8 @@ public class UpscalingExportSession {
         quality: Double,
         prioritizeSpeed: Bool = false,
         allowOverWrite: Bool = false,
-        crop: CGRect? = nil
+        crop: CGRect? = nil,
+        processAudio: Bool = true
     ) {
         self.asset = asset
         self.outputCodec = outputCodec
@@ -39,6 +40,7 @@ public class UpscalingExportSession {
         self.prioritizeSpeed = prioritizeSpeed
         self.allowOverWrite = allowOverWrite
         self.crop = crop
+        self.processAudio = processAudio
         progress = Progress(
             parent: nil,
             userInfo: [
@@ -67,6 +69,7 @@ public class UpscalingExportSession {
     public let prioritizeSpeed: Bool
     public let allowOverWrite: Bool
     public let crop: CGRect?
+    public let processAudio: Bool
 
     public let progress: Progress
 
@@ -95,6 +98,9 @@ public class UpscalingExportSession {
         var mediaTracks: [MediaTrack] = []
         let tracks = try await asset.load(.tracks)
         for track in tracks {
+            if !processAudio, track.mediaType == .audio {
+                continue
+            }
             guard [.audio, .video].contains(track.mediaType) else { continue }
             let formatDescription = try await track.load(.formatDescriptions).first
 
