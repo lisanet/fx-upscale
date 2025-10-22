@@ -41,6 +41,7 @@ enum FlagBool: ExpressibleByArgument {
 }
 
 enum TargetResolution: ExpressibleByArgument{
+    case hd   // 1280x720
     case fhd  // 1920x1080
     case qhd // 2160x1440
     case k4   // 3840x2160
@@ -48,6 +49,7 @@ enum TargetResolution: ExpressibleByArgument{
     
     init?(argument: String) {
         switch argument.lowercased() {
+        case "hd": self = .hd
         case "fhd": self = .fhd
         case "qhd": self = .qhd
         case "wqhd": self = .qhd
@@ -59,6 +61,7 @@ enum TargetResolution: ExpressibleByArgument{
     }
     var maxWidth: CGFloat {
         switch self {
+        case .hd: return 1280
         case .fhd: return 1920
         case .qhd: return 2160
         case .k4: return 3840
@@ -67,6 +70,7 @@ enum TargetResolution: ExpressibleByArgument{
     }  
     var maxHeight: CGFloat {
         switch self {
+        case .hd: return 720
         case .fhd: return 1080
         case .qhd: return 1440
         case .k4: return 2160
@@ -112,7 +116,7 @@ actor LogInfo {
     var scale: Double?
     @Option(name: .shortAndLong, help: ArgumentHelp("""
                     Scale to target resolution <preset>. 
-                    Presets are: 'fhd' (1920x1080), ' qhd' or 'wqhd' (2160x1440), '4k' or 'uhd' (3840x2160),  '8k' (7680x4320)
+                    Presets are: 'hd' (1280x720), 'fhd' (1920x1080), ' qhd' or 'wqhd' (2160x1440), '4k' or 'uhd' (3840x2160),  '8k' (7680x4320)
                     """, valueName: "preset"))
     var target: TargetResolution?
     @Option(name: [.customShort("r"), .long], help: ArgumentHelp("Crop rectangle 'width:height:left:top'. Applied before upscaling.", valueName: "rect"))
