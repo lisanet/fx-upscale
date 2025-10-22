@@ -69,7 +69,9 @@ OPTIONS:
   -s, --scale <factor>    scale factor (e.g. 2.0). Overrides width/height. 
                           If neither target, width, height nor scale is given, the video is upscaled by factor 2.0
   -t, --target <preset>   Scale to target resolution <preset>. 
-                          Presets are: 'fhd' (1920x1080), ' qhd' or 'wqhd' (2160x1440), '4k' or 'uhd' (3840x2160),  '8k' (7680x4320)
+                          Presets are: 'hd' (1280x720), 'fhd' (1920x1080), ' qhd' or 'wqhd' (2160x1440), '4k' or 'uhd' (3840x2160),
+                           '8k' (7680x4320)
+  -1, --square            Scale anamorphic video to square pixels when using --target
   -r, --crop <rect>       Crop rectangle 'width:height:left:top'. Applied before upscaling.
   -c, --codec <codec>     output codec: 'hevc', 'prores', or 'h264 (default: hevc)
   -q, --quality <quality> encoder quality 0 – 100. Applies to HEVC/H.264, ProRes is always lossless (default: 58)
