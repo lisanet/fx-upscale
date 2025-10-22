@@ -119,6 +119,8 @@ actor LogInfo {
                     Presets are: 'hd' (1280x720), 'fhd' (1920x1080), ' qhd' or 'wqhd' (2160x1440), '4k' or 'uhd' (3840x2160),  '8k' (7680x4320)
                     """, valueName: "preset"))
     var target: TargetResolution?
+    @Flag(name: [.customShort("1"), .long], help: "Scale anamorphic video to square pixels when using --target")
+    var square: Bool = false
     @Option(name: [.customShort("r"), .long], help: ArgumentHelp("Crop rectangle 'width:height:left:top'. Applied before upscaling.", valueName: "rect"))
     var crop: CropRect?
     @Option(name: .shortAndLong, help: "output codec: 'hevc', 'prores', or 'h264")
@@ -173,6 +175,10 @@ actor LogInfo {
         }
         let inputSize = cropRect?.size ?? originalInputSize
 
+        if square, target == nil {
+            throw ValidationError("--square can only be used with --target")
+        }
+
         // validate mutually exclusive options
         if target != nil, scale != nil || width != nil || height != nil {
             throw ValidationError("Cannot combine --target with --scale or --width/--height")
@@ -193,11 +199,11 @@ actor LogInfo {
 
         // Apply target resolution if provided
         if let target = target {
-            // to be implemented
             let targetSize = getOutputSize(
                 inputDIM: inputSize, 
                 origSAR: formatDescription?.pixelAspectRatio ?? CGSize(width: 1, height: 1), 
-                maxDIM: CGSize(width: target.maxWidth, height: target.maxHeight)
+                maxDIM: CGSize(width: target.maxWidth, height: target.maxHeight),
+                square: square
             )
             outputWidth = Int(targetSize.width)
             outputHeight = Int(targetSize.height)
@@ -326,15 +332,21 @@ func formatTime(_ seconds: Double) -> String {
     return String(format: "%02d:%02d:%02d.%03d", hours, minutes, secs, milliseconds)
 }
 
-func getOutputSize(inputDIM: CGSize, origSAR: CGSize, maxDIM: CGSize) -> CGSize {
+func getOutputSize(inputDIM: CGSize, origSAR: CGSize, maxDIM: CGSize, square: Bool) -> CGSize {
     var newWidth: CGFloat
     var newHeight: CGFloat
-        
-    newWidth = maxDIM.width * origSAR.height / origSAR.width
+    var inputDIM = inputDIM
+
+    if square {
+        newWidth = maxDIM.width
+        inputDIM.width = inputDIM.width * origSAR.width / origSAR.height
+    } else {
+        newWidth = maxDIM.width * origSAR.height / origSAR.width
+    }
     newHeight = newWidth / inputDIM.width * inputDIM.height
     if newHeight > maxDIM.height {
         newHeight = maxDIM.height
-        newWidth = newHeight * inputDIM.width / inputDIM.height
+        newWidth = newHeight * inputDIM.width / inputDIM.height  
     }
     // ensure even dimensions, always round down to avoid exceeding maxDIM
     return CGSize(width: floor(newWidth / 2) * 2, height: floor(newHeight / 2) * 2)
