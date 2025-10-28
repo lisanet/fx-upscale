@@ -108,19 +108,21 @@ public class UpscalingExportSession {
                 let assetReaderOutput = Self.assetReaderOutput(
                     for: track,
                     formatDescription: formatDescription
-                ),
-                let assetWriterInput = try await Self.assetWriterInput(
-                    for: track,
-                    formatDescription: formatDescription,
-                    inSize: inSize,
-                    outputSize: outputSize,
-                    outputCodec: outputCodec,
-                    gopSize: gopSize,
-                    bframes: bframes,
-                    quality: quality,
-                    prioritizeSpeed: prioritizeSpeed
                 )
             else { continue }
+            
+            let (assetWriterInput, needsColorConversion) = try await Self.assetWriterInput(
+                for: track,
+                formatDescription: formatDescription,
+                inSize: inSize,
+                outputSize: outputSize,
+                outputCodec: outputCodec,
+                gopSize: gopSize,
+                bframes: bframes,
+                quality: quality,
+                prioritizeSpeed: prioritizeSpeed
+            )
+            guard let assetWriterInput else { continue }
 
             if assetReader.canAdd(assetReaderOutput) {
                 assetReader.add(assetReaderOutput)
@@ -156,7 +158,8 @@ public class UpscalingExportSession {
                                     kCVPixelBufferWidthKey as String: Int(outputSize.width),
                                     kCVPixelBufferHeightKey as String: Int(outputSize.height),
                                 ]
-                            )
+                            ),
+                            needsColorConversion: needsColorConversion
                         ))
                 } else {
                     mediaTracks.append(
@@ -173,7 +176,8 @@ public class UpscalingExportSession {
                                     kCVPixelBufferWidthKey as String: Int(outputSize.width),
                                     kCVPixelBufferHeightKey as String: Int(outputSize.height),
                                 ]
-                            )
+                            ),
+                            needsColorConversion: needsColorConversion
                         ))
                 }
             }
@@ -196,7 +200,7 @@ public class UpscalingExportSession {
                             self.progress.addChild(progress, withPendingUnitCount: 1)
                             try await Self.processAudioSamples(
                                 from: output, to: input, progress: progress)
-                        case let .video(output, input, inputSize, adaptor):
+                        case let .video(output, input, inputSize, adaptor, needsColorConversion):
                             let progress = Progress(totalUnitCount: Int64(duration.seconds))
                             self.progress.addChild(progress, withPendingUnitCount: 10)
                             try await Self.processVideoSamples(
@@ -206,9 +210,10 @@ public class UpscalingExportSession {
                                 inputSize: inputSize,
                                 outputSize: self.outputSize,
                                 crop: self.crop,
-                                progress: progress
+                                progress: progress,
+                                needsColorConversion: needsColorConversion
                             )
-                        case let .spatialVideo(output, input, inputSize, adaptor):
+                        case let .spatialVideo(output, input, inputSize, adaptor, needsColorConversion):
                             if #available(macOS 14.0, iOS 17.0, *) {
                                 let progress = Progress(totalUnitCount: Int64(duration.seconds))
                                 self.progress.addChild(progress, withPendingUnitCount: 10)
@@ -220,7 +225,8 @@ public class UpscalingExportSession {
                                     inputSize: inputSize,
                                     outputSize: self.outputSize,
                                     crop: self.crop,
-                                    progress: progress
+                                    progress: progress,
+                                    needsColorConversion: needsColorConversion
                                 )
                             }
                         }
@@ -255,7 +261,7 @@ public class UpscalingExportSession {
                 options: 0
             )
             _ = outputURL.withUnsafeFileSystemRepresentation { fileSystemPath in
-                value.withUnsafeBytes {
+                value.withUnsafeBytes { 
                     setxattr(
                         fileSystemPath,
                         "com.apple.metadata:kMDItemCreator",
@@ -280,13 +286,15 @@ public class UpscalingExportSession {
             _ output: AVAssetReaderOutput,
             _ input: AVAssetWriterInput,
             _ inputSize: CGSize,
-            _ adaptor: AVAssetWriterInputPixelBufferAdaptor
+            _ adaptor: AVAssetWriterInputPixelBufferAdaptor,
+            needsColorConversion: Bool
         )
         case spatialVideo(
             _ output: AVAssetReaderOutput,
             _ input: AVAssetWriterInput,
             _ inputSize: CGSize,
-            _ adaptor: NSObject
+            _ adaptor: NSObject,
+            needsColorConversion: Bool
         )
     }
 
@@ -330,7 +338,7 @@ public class UpscalingExportSession {
         bframes: Bool,
         quality: Double,
         prioritizeSpeed: Bool
-    ) async throws -> AVAssetWriterInput? {
+    ) async throws -> (AVAssetWriterInput?, Bool) {
         switch track.mediaType {
         case .video:
             var outputSettings: [String: Any] = [
@@ -354,15 +362,30 @@ public class UpscalingExportSession {
                 AVVideoPixelAspectRatioVerticalSpacingKey: Int(newSAR.height),
             ]
 
+            // Handle color properties
+            var needsColorConversion: Bool = false
+            // Determine if color conversion is needed only if source has color properties
             if let colorPrimaries = formatDescription?.colorPrimaries,
                let colorTransferFunction = formatDescription?.colorTransferFunction,
                let colorYCbCrMatrix = formatDescription?.colorYCbCrMatrix
             {
-                outputSettings[AVVideoColorPropertiesKey] = [
-                    AVVideoColorPrimariesKey: colorPrimaries,
-                    AVVideoTransferFunctionKey: colorTransferFunction,
-                    AVVideoYCbCrMatrixKey: colorYCbCrMatrix,
-                ]
+                if outputSize.width >= 1280 || outputSize.height >= 720 {
+                    // For HD and above, convert to BT.709
+                    needsColorConversion = true
+                    outputSettings[AVVideoColorPropertiesKey] = [
+                        AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
+                        AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
+                        AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
+                    ]
+               } else {
+                    // For SD and below, retain original color properties
+                    needsColorConversion = false
+                    outputSettings[AVVideoColorPropertiesKey] = [
+                        AVVideoColorPrimariesKey: colorPrimaries,
+                        AVVideoTransferFunctionKey: colorTransferFunction,
+                        AVVideoYCbCrMatrixKey: colorYCbCrMatrix,
+                    ]
+                }               
             }
             if #available(macOS 14.0, iOS 17.0, *),
                formatDescription?.hasLeftAndRightEye ?? false
@@ -448,7 +471,7 @@ public class UpscalingExportSession {
             )
             assetWriterInput.transform = try await track.load(.preferredTransform)
             assetWriterInput.expectsMediaDataInRealTime = false
-            return assetWriterInput
+            return (assetWriterInput, needsColorConversion)
         case .audio:
             let assetWriterInput = AVAssetWriterInput(
                 mediaType: .audio,
@@ -456,9 +479,9 @@ public class UpscalingExportSession {
                 sourceFormatHint: formatDescription
             )
             assetWriterInput.expectsMediaDataInRealTime = false
-            return assetWriterInput
-        default: return nil
-        }
+            return (assetWriterInput, false)
+        default: return (nil, false)
+        } 
     }
 
     private static func processAudioSamples(
@@ -500,7 +523,8 @@ public class UpscalingExportSession {
         inputSize: CGSize,
         outputSize: CGSize,
         crop: CGRect?,
-        progress: Progress
+        progress: Progress,
+        needsColorConversion: Bool
     ) async throws {
         guard let upscaler = Upscaler(inputSize: inputSize, outputSize: outputSize, crop: crop) else {
             throw Error.failedToCreateUpscaler
@@ -524,6 +548,12 @@ public class UpscalingExportSession {
                                 imageBuffer,
                                 pixelBufferPool: adaptor.pixelBufferPool
                             )
+                            // this is needed to avoid color issues in some players
+                            if needsColorConversion {
+                                CVBufferSetAttachment(upscaledImageBuffer, kCVImageBufferColorPrimariesKey, kCMFormatDescriptionColorPrimaries_ITU_R_709_2, .shouldPropagate)
+                                CVBufferSetAttachment(upscaledImageBuffer, kCVImageBufferYCbCrMatrixKey, kCMFormatDescriptionYCbCrMatrix_ITU_R_709_2, .shouldPropagate)
+                                CVBufferSetAttachment(upscaledImageBuffer, kCVImageBufferTransferFunctionKey, kCMFormatDescriptionTransferFunction_ITU_R_709_2, .shouldPropagate)
+                            }
                             guard
                                 adaptor.append(
                                     upscaledImageBuffer,
@@ -556,7 +586,8 @@ public class UpscalingExportSession {
         inputSize: CGSize,
         outputSize: CGSize,
         crop: CGRect?,
-        progress: Progress
+        progress: Progress,
+        needsColorConversion: Bool
     ) async throws {
         guard let upscaler = Upscaler(inputSize: inputSize, outputSize: outputSize, crop: crop) else {
             throw Error.failedToCreateUpscaler
@@ -601,6 +632,14 @@ public class UpscalingExportSession {
                                 rightEyePixelBuffer,
                                 pixelBufferPool: adaptor.pixelBufferPool
                             )
+                            if needsColorConversion {
+                                CVBufferSetAttachment(upscaledLeftEyePixelBuffer, kCVImageBufferColorPrimariesKey, kCMFormatDescriptionColorPrimaries_ITU_R_709_2, .shouldPropagate)
+                                CVBufferSetAttachment(upscaledLeftEyePixelBuffer, kCVImageBufferYCbCrMatrixKey, kCMFormatDescriptionYCbCrMatrix_ITU_R_709_2, .shouldPropagate)
+                                CVBufferSetAttachment(upscaledLeftEyePixelBuffer, kCVImageBufferTransferFunctionKey, kCMFormatDescriptionTransferFunction_ITU_R_709_2, .shouldPropagate)
+                                CVBufferSetAttachment(upscaledRightEyePixelBuffer, kCVImageBufferColorPrimariesKey, kCMFormatDescriptionColorPrimaries_ITU_R_709_2, .shouldPropagate)
+                                CVBufferSetAttachment(upscaledRightEyePixelBuffer, kCVImageBufferYCbCrMatrixKey, kCMFormatDescriptionYCbCrMatrix_ITU_R_709_2, .shouldPropagate)
+                                CVBufferSetAttachment(upscaledRightEyePixelBuffer, kCVImageBufferTransferFunctionKey, kCMFormatDescriptionTransferFunction_ITU_R_709_2, .shouldPropagate)
+                            }
                             let leftEyeTaggedBuffer = CMTaggedBuffer(
                                 tags: [.stereoView(.leftEye), .videoLayerID(0)],
                                 pixelBuffer: upscaledLeftEyePixelBuffer
