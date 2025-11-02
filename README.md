@@ -57,29 +57,33 @@ There are several ways to install `fx-upscale`
 ```
 USAGE: fx-upscale -i input-file [options]
 
-OPTIONS:
+FILE OPTIONS:
   -i, --input <input>     input video file to upscale. This option is required.
   -o, --output <output>   output video file path.
                           If not specified, ' upscaled' is appended to the input file name.
+  -y, --overwrite         overwrite output file
   -a, --noaudio           Disable audio processing. The output file will have no audio tracks.
+  --color_input <space>   expert option: input color space for SD content, if not autodected: 'pal' or 'ntsc' (default: auto)
+
+SCALING OPTIONS:
   -w, --width <width>     width in pixels of output video.
                           If only width is specified, height is calculated proportionally.
   -h, --height <height>   height in pixels of output video.
                           If only height is specified, width is calculated proportionally.
-  -s, --scale <factor>    scale factor (e.g. 2.0). Overrides width/height. 
-                          If neither target, width, height nor scale is given, the video is upscaled by factor 2.0
   -t, --target <preset>   Scale to target resolution <preset>. 
-                          Presets are: 'hd' (1280x720), 'fhd' (1920x1080), ' qhd' or 'wqhd' (2160x1440), '4k' or 'uhd' (3840x2160), 
-                          '8k' (7680x4320)
+                          Presets are: 'hd' (1280x720), 'fhd' (1920x1080), ' qhd' or 'wqhd' (2160x1440), '4k' or 'uhd' (3840x2160),
+                           '8k' (7680x4320)
   -1, --square            Scale anamorphic video to square pixels when using --target
   -r, --crop <rect>       Crop rectangle 'width:height:left:top'. Applied before upscaling.
+
+CODEC OPTIONS:
   -c, --codec <codec>     output codec: 'hevc', 'prores', or 'h264 (default: hevc)
   -q, --quality <quality> encoder quality 0 – 100. Applies to HEVC/H.264, ProRes is always lossless (default: 58)
   -g, --gop <size>        GOP size (default: let encoder decide the GOP size)
   -b, --bframes <bool>    use B-frames. You can use yes/no, true/false, 1/0 (default: yes)
   -p, --prio_speed <bool> prioritize speed over quality. You can use yes/no, true/false, 1/0 (default: yes)
-  --color_input <space>   expert option: input color space for SD content, if not autodected: 'pal' or 'ntsc' (default: auto)
-  -y                      overwrite output file
+
+OPTIONS:
   --quiet                 disable logging
   --version               Show the version.
   --help                  Show help information.
