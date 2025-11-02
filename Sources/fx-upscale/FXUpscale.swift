@@ -91,20 +91,21 @@ actor LogInfo {
     }
 }
 
-@main struct FXUpscale: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(
-        abstract: "Metal-based video upscale.",
-        usage: "fx-upscale -i input-file [options]",
-        version: version,
-        helpNames: .long
-    )
+struct FileOptions: ParsableArguments {
     @Option(name: .shortAndLong, help: "input video file to upscale. This option is required.",
             transform: URL.init(fileURLWithPath:))
     var input: URL
     @Option(name: .shortAndLong, help: "output video file path.\nIf not specified, ' upscaled' is appended to the input file name.")
     var output: String?
+    @Flag(name: [ .customShort("y"), .customLong("overwrite") ], help: "overwrite output file")
+    var allowOverWrite: Bool = false
     @Flag(name: [ .customShort("a"), .long ], help: "Disable audio processing. The output file will have no audio tracks.")
     var noaudio: Bool = false
+    @Option(name: .customLong("color_input"), help: ArgumentHelp("expert option: input color space for SD content, if not autodected: 'pal' or 'ntsc'", valueName: "space"))
+    var inputSDColor: String = "auto"
+}
+
+struct ScaleOptions: ParsableArguments {
     @Option(name: .shortAndLong, help: "width in pixels of output video.\nIf only width is specified, height is calculated proportionally.")
     var width: Int?
     @Option(name: .shortAndLong, help: "height in pixels of output video.\nIf only height is specified, width is calculated proportionally.")
@@ -122,7 +123,10 @@ actor LogInfo {
     @Flag(name: [.customShort("1"), .long], help: "Scale anamorphic video to square pixels when using --target")
     var square: Bool = false
     @Option(name: [.customShort("r"), .long], help: ArgumentHelp("Crop rectangle 'width:height:left:top'. Applied before upscaling.", valueName: "rect"))
-    var crop: CropRect?
+    var crop: CropRect?   
+}
+
+struct CodecOptions: ParsableArguments {
     @Option(name: .shortAndLong, help: "output codec: 'hevc', 'prores', or 'h264")
     var codec: String = "hevc"
     @Option(name: .shortAndLong, help: "encoder quality 0 – 100. Applies to HEVC/H.264, ProRes is always lossless")
@@ -133,23 +137,34 @@ actor LogInfo {
     var bframes: FlagBool = .yes
     @Option(name: [ .customShort("p"), .customLong("prio_speed")], help: ArgumentHelp("prioritize speed over quality. You can use yes/no, true/false, 1/0", valueName: "bool"))
     var prioritizeSpeed: FlagBool = .yes
-    @Option(name: .customLong("color_input"), help: ArgumentHelp("expert option: input color space for SD content, if not autodected: 'pal' or 'ntsc'", valueName: "space"))
-    var inputSDColor: String = "auto"
-    @Flag(name: .customShort("y"), help: "overwrite output file")
-    var allowOverWrite: Bool = false
+}
+
+@main struct FXUpscale: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Metal-based video upscale.",
+        usage: "fx-upscale -i input-file [options]",
+        version: version,
+        helpNames: .long
+    )
+    @OptionGroup(title: "File Options")
+    var file: FileOptions
+    @OptionGroup(title: "Scaling Options")
+    var scale: ScaleOptions
+    @OptionGroup(title: "Codec Options")
+    var codec: CodecOptions
     @Flag(name: .long, help: "disable logging")
     var quiet: Bool = false
 
     mutating func run() async throws {
-        guard ["mov", "m4v", "mp4"].contains(input.pathExtension.lowercased()) else {
+        guard ["mov", "m4v", "mp4"].contains(file.input.pathExtension.lowercased()) else {
             throw ValidationError("Unsupported file type. Supported types: mov, m4v, mp4")
         }
 
-        guard FileManager.default.fileExists(atPath: input.path) else {
-            throw ValidationError("File does not exist at \(input.path(percentEncoded: false))")
+        guard FileManager.default.fileExists(atPath: file.input.path) else {
+            throw ValidationError("File does not exist at \(file.input.path(percentEncoded: false))")
         }
 
-        let asset = AVAsset(url: input)
+        let asset = AVAsset(url: file.input)
         guard let videoTrack = try await asset.loadTracks(withMediaType: .video).first else {
             throw ValidationError("Failed to get video track from input file")
         }
@@ -165,7 +180,7 @@ actor LogInfo {
             throw ValidationError("Failed to determine input video dimensions")
         }
         let originalInputSize = CGSize(width: Int(dimensions.width), height: Int(dimensions.height))
-        let cropRect: CGRect? = crop?.rect
+        let cropRect: CGRect? = scale.crop?.rect
         // Validate crop rect if provided
         if let crop = cropRect {
             guard crop.width > 0, crop.height > 0, crop.origin.x >= 0, crop.origin.y >= 0 else {
@@ -177,17 +192,17 @@ actor LogInfo {
         }
         let inputSize = cropRect?.size ?? originalInputSize
 
-        if square, target == nil {
+        if scale.square, scale.target == nil {
             throw ValidationError("--square can only be used with --target")
         }
 
         // validate mutually exclusive options
-        if target != nil, scale != nil || width != nil || height != nil {
+        if scale.target != nil, scale.scale != nil || scale.width != nil || scale.height != nil {
             throw ValidationError("Cannot combine --target with --scale or --width/--height")
         }
 
         // Validate mutually exclusive options
-        if scale != nil, (width != nil || height != nil) {
+        if scale.scale != nil, (scale.width != nil || scale.height != nil) {
             throw ValidationError("Cannot combine --scale with --width/--height")
         }
 
@@ -200,26 +215,26 @@ actor LogInfo {
         var outputHeight: Int
 
         // Apply target resolution if provided
-        if let target = target {
+        if let target = scale.target {
             let targetSize = getOutputSize(
                 inputDIM: inputSize, 
                 origSAR: formatDescription?.pixelAspectRatio ?? CGSize(width: 1, height: 1), 
                 maxDIM: CGSize(width: target.maxWidth, height: target.maxHeight),
-                square: square
+                square: scale.square
             )
             outputWidth = Int(targetSize.width)
             outputHeight = Int(targetSize.height)
         } else {
-            if let s = scale {
+            if let s = scale.scale {
                 guard s > 0 else { throw ValidationError("--scale must be greater than 0") }
                 outputWidth = Int(inputSize.width * CGFloat(s))
                 outputHeight = Int(inputSize.height * CGFloat(s))
             } else {
                 outputWidth =
-                    width ?? height.map { Int(inputSize.width * (CGFloat($0) / inputSize.height)) } ?? Int(
+                    scale.width ?? scale.height.map { Int(inputSize.width * (CGFloat($0) / inputSize.height)) } ?? Int(
                         inputSize.width) * 2
                 outputHeight =
-                    height ?? Int(inputSize.height * (CGFloat(outputWidth) / inputSize.width))
+                    scale.height ?? Int(inputSize.height * (CGFloat(outputWidth) / inputSize.width))
             }
             guard outputWidth > 0, outputHeight > 0 else {
                 throw ValidationError("Calculated output size must be greater than zero")
@@ -234,7 +249,7 @@ actor LogInfo {
 
         // Validate codec
         let requestedOutputCodec: AVVideoCodecType? = try {
-            switch codec.lowercased() {
+            switch codec.codec.lowercased() {
             case "prores": return .proRes422
             case "h264": return .h264
             case "hevc": return .hevc
@@ -253,37 +268,37 @@ actor LogInfo {
             AVVideoCodecType? = convertToProRes ? .proRes422 : requestedOutputCodec
 
         // validate SD color space option
-        if inputSDColor != "auto" && inputSDColor != "pal" && inputSDColor != "ntsc" {
+        if file.inputSDColor != "auto" && file.inputSDColor != "pal" && file.inputSDColor != "ntsc" {
             throw ValidationError("Invalid SD color space. Use one of: pal, ntsc")
         }
 
         // only autodetect for SD content
         if originalInputSize.width <= 720, originalInputSize.height <= 576 {
             // auto-detect based on resolution, this should work on all DVD ripped content
-            if inputSDColor == "auto" {
-                inputSDColor = originalInputSize.height == 576 ? "pal" : "ntsc"
+            if file.inputSDColor == "auto" {
+                file.inputSDColor = originalInputSize.height == 576 ? "pal" : "ntsc"
             }
             // some SD content might have been cropped already, so use pixel aspect ratio
-            if inputSDColor == "auto" { 
+            if file.inputSDColor == "auto" { 
                 if let par = formatDescription?.pixelAspectRatio {
-                    if (par.width == 16) || (par.width == 64) { inputSDColor = "pal" }
-                    if (par.width == 10) || (par.width == 40) { inputSDColor = "ntsc" }
+                    if (par.width == 16) || (par.width == 64) { file.inputSDColor = "pal" }
+                    if (par.width == 10) || (par.width == 40) { file.inputSDColor = "ntsc" }
                 }
             }
             // still not detected, so test for fps
-            if inputSDColor == "auto" { 
-                inputSDColor = fps == 25.0 ? "pal" : "ntsc"
+            if file.inputSDColor == "auto" { 
+                file.inputSDColor = fps == 25.0 ? "pal" : "ntsc"
             }
             // some rare cases where we can't detect, default to ntsc, inform the user
-            if inputSDColor == "auto" {
+            if file.inputSDColor == "auto" {
                 CommandLine.warn("Unable to detect SD color space, defaulting to NTSC. Overwrite with --color_input if needed.")
-                inputSDColor = "ntsc"
+                file.inputSDColor = "ntsc"
             }
         } else {
-            if inputSDColor != "auto" {
+            if file.inputSDColor != "auto" {
                 CommandLine.warn("--color_input is only applicable to SD content (<= 720x576), ignoring")
             }
-            inputSDColor = "none" // disable for non-SD content
+            file.inputSDColor = "none" // disable for non-SD content
         }
 
 
@@ -293,28 +308,28 @@ actor LogInfo {
 
         // Validate quality range if provided
         var normalizedQuality: Double
-        guard (0...100).contains(quality) else {
+        guard (0...100).contains(codec.quality) else {
             throw ValidationError("--quality must be between 0 and 100")
         }
-        normalizedQuality = Double(quality) / 100.0
+        normalizedQuality = Double(codec.quality) / 100.0
 
         // now create the export session
         let exportSession = UpscalingExportSession(
             asset: asset,
             outputCodec: effectiveOutputCodec,
-            preferredOutputURL: output.map { URL(fileURLWithPath: $0) }
-                ?? input.renamed { "\($0) upscaled" },
+            preferredOutputURL: file.output.map { URL(fileURLWithPath: $0) }
+                ?? file.input.renamed { "\($0) upscaled" },
             inSize: inputSize,
             outputSize: outputSize,
             creator: ProcessInfo.processInfo.processName,
-            gopSize: gopSize,
-            bframes: bframes.boolValue,
+            gopSize: codec.gopSize,
+            bframes: codec.bframes.boolValue,
             quality: normalizedQuality,
-            prioritizeSpeed: prioritizeSpeed.boolValue,
-            allowOverWrite: allowOverWrite,
+            prioritizeSpeed: codec.prioritizeSpeed.boolValue,
+            allowOverWrite: file.allowOverWrite,
             crop: cropRect,
-            processAudio: !noaudio,
-            inputSDColor: inputSDColor
+            processAudio: !file.noaudio,
+            inputSDColor: file.inputSDColor
         )
  
         await logging.info("Video duration: \(videoLength), total frames: \(totalFrames)")
@@ -327,19 +342,19 @@ actor LogInfo {
                 ].joined()
             )
         }
-        let sdinfo = inputSDColor == "none" ? ":" : " SD \(inputSDColor.uppercased()):"      
+        let sdinfo = file.inputSDColor == "none" ? ":" : " SD \(file.inputSDColor.uppercased()):"      
         await logging.info("Upscaling\(sdinfo) \(Int(inputSize.width))x\(Int(inputSize.height)) to \(Int(outputSize.width))x\(Int(outputSize.height))")
         await logging.info(
             [
-                "Codec: \(codec.lowercased())",
-                bframes.boolValue ? "bframes" : nil,
-                "quality \(quality)",
-                gopSize.map { "gop \($0)" },
+                "Codec: \(codec.codec.lowercased())",
+                codec.bframes.boolValue ? "bframes" : nil,
+                "quality \(codec.quality)",
+                codec.gopSize.map { "gop \($0)" },
             ]
             .compactMap { $0 }
             .joined(separator: ", ")
         )
-        prioritizeSpeed.boolValue ? nil : await logging.info("Prioritize speed: no")
+        codec.prioritizeSpeed.boolValue ? nil : await logging.info("Prioritize speed: no")
 
         ProgressBar.start(progress: exportSession.progress)
 
