@@ -6,7 +6,7 @@ import Upscaling
 
 // MARK: - MetalFXUpscale
 
-let version: String = "2.4.1-skl"
+let version: String = "2.4.2-skl"
 
 struct CropRect: ExpressibleByArgument {
     let rect: CGRect
@@ -260,7 +260,9 @@ struct CodecOptions: ParsableArguments {
         if originalInputSize.width <= 720, originalInputSize.height <= 576 {
             // auto-detect based on resolution, this should work on all DVD ripped content
             if file.inputSDColor == "auto" {
-                file.inputSDColor = originalInputSize.height == 576 ? "pal" : "ntsc"
+                if originalInputSize.height == 576 { 
+                    file.inputSDColor = "pal"
+                }
             }
             // some SD content might have been cropped already, so use pixel aspect ratio
             if file.inputSDColor == "auto" { 
