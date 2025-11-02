@@ -6,8 +6,9 @@
       "args": [],
       "cwd": "${workspaceFolder:fx-upscale}",
       "name": "Debug fx-upscale",
-      "program": "${workspaceFolder:fx-upscale}/.build/debug/fx-upscale",
-      "preLaunchTask": "swift: Build Debug fx-upscale"
+      "preLaunchTask": "swift: Build Debug fx-upscale",
+      "target": "fx-upscale",
+      "configuration": "debug"
     },
     {
       "type": "swift",
@@ -15,8 +16,9 @@
       "args": [],
       "cwd": "${workspaceFolder:fx-upscale}",
       "name": "Release fx-upscale",
-      "program": "${workspaceFolder:fx-upscale}/.build/release/fx-upscale",
-      "preLaunchTask": "swift: Build Release fx-upscale"
+      "preLaunchTask": "swift: Build Release fx-upscale",
+      "target": "fx-upscale",
+      "configuration": "release"
     }
   ]
 }
