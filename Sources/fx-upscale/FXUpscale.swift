@@ -6,7 +6,7 @@ import Upscaling
 
 // MARK: - MetalFXUpscale
 
-let version: String = "2.4.0-skl"
+let version: String = "2.4.1-skl"
 
 struct CropRect: ExpressibleByArgument {
     let rect: CGRect
@@ -111,11 +111,6 @@ struct ScaleOptions: ParsableArguments {
     @Option(name: .shortAndLong, help: "height in pixels of output video.\nIf only height is specified, width is calculated proportionally.")
     var height: Int?
     @Option(name: .shortAndLong, help: ArgumentHelp("""
-                    scale factor (e.g. 2.0). Overrides width/height. 
-                    If neither target, width, height nor scale is given, the video is upscaled by factor 2.0
-                    """, valueName: "factor"))
-    var scale: Double?
-    @Option(name: .shortAndLong, help: ArgumentHelp("""
                     Scale to target resolution <preset>. 
                     Presets are: 'hd' (1280x720), 'fhd' (1920x1080), ' qhd' or 'wqhd' (2160x1440), '4k' or 'uhd' (3840x2160),  '8k' (7680x4320)
                     """, valueName: "preset"))
@@ -197,19 +192,13 @@ struct CodecOptions: ParsableArguments {
         }
 
         // validate mutually exclusive options
-        if scale.target != nil, scale.scale != nil || scale.width != nil || scale.height != nil {
-            throw ValidationError("Cannot combine --target with --scale or --width/--height")
+        if scale.target != nil, scale.width != nil || scale.height != nil {
+            throw ValidationError("Cannot combine --target with --width/--height")
         }
 
-        // Validate mutually exclusive options
-        if scale.scale != nil, (scale.width != nil || scale.height != nil) {
-            throw ValidationError("Cannot combine --scale with --width/--height")
-        }
-
-        // 1. Use --scale if provided
+        // 1. Use --target if provided
         // 2. Use passed in width/height
         // 3. Use proportional width/height if only one is specified
-        // 4. Default to 2x upscale
 
         var outputWidth: Int
         var outputHeight: Int
@@ -225,19 +214,14 @@ struct CodecOptions: ParsableArguments {
             outputWidth = Int(targetSize.width)
             outputHeight = Int(targetSize.height)
         } else {
-            if let s = scale.scale {
-                guard s > 0 else { throw ValidationError("--scale must be greater than 0") }
-                outputWidth = Int(inputSize.width * CGFloat(s))
-                outputHeight = Int(inputSize.height * CGFloat(s))
-            } else {
-                outputWidth =
-                    scale.width ?? scale.height.map { Int(inputSize.width * (CGFloat($0) / inputSize.height)) } ?? Int(
-                        inputSize.width) * 2
-                outputHeight =
-                    scale.height ?? Int(inputSize.height * (CGFloat(outputWidth) / inputSize.width))
-            }
+            outputWidth =
+                scale.width ?? scale.height.map { Int(inputSize.width * (CGFloat($0) / inputSize.height)) } ?? Int(
+                    inputSize.width)
+            outputHeight =
+                scale.height ?? Int(inputSize.height * (CGFloat(outputWidth) / inputSize.width))
+            
             guard outputWidth > 0, outputHeight > 0 else {
-                throw ValidationError("Calculated output size must be greater than zero")
+                throw ValidationError("Output size must be greater than zero")
             }
             guard outputWidth <= UpscalingExportSession.maxOutputSize,
                 outputHeight <= UpscalingExportSession.maxOutputSize
