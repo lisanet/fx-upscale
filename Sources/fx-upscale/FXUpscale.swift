@@ -134,7 +134,7 @@ actor LogInfo {
     @Option(name: [ .customShort("p"), .customLong("prio_speed")], help: ArgumentHelp("prioritize speed over quality. You can use yes/no, true/false, 1/0", valueName: "bool"))
     var prioritizeSpeed: FlagBool = .yes
     @Option(name: .customLong("color_input"), help: ArgumentHelp("expert option: input color space for SD content, if not autodected: 'pal' or 'ntsc'", valueName: "space"))
-    var inputColor: String = "auto"
+    var inputSDColor: String = "auto"
     @Flag(name: .customShort("y"), help: "overwrite output file")
     var allowOverWrite: Bool = false
     @Flag(name: .long, help: "disable logging")
@@ -253,37 +253,37 @@ actor LogInfo {
             AVVideoCodecType? = convertToProRes ? .proRes422 : requestedOutputCodec
 
         // validate SD color space option
-        if inputColor != "auto" && inputColor != "pal" && inputColor != "ntsc" {
+        if inputSDColor != "auto" && inputSDColor != "pal" && inputSDColor != "ntsc" {
             throw ValidationError("Invalid SD color space. Use one of: pal, ntsc")
         }
 
         // only autodetect for SD content
         if originalInputSize.width <= 720, originalInputSize.height <= 576 {
             // auto-detect based on resolution, this should work on all DVD ripped content
-            if inputColor == "auto" {
-                inputColor = originalInputSize.height == 576 ? "pal" : "ntsc"
+            if inputSDColor == "auto" {
+                inputSDColor = originalInputSize.height == 576 ? "pal" : "ntsc"
             }
             // some SD content might have been cropped already, so use pixel aspect ratio
-            if inputColor == "auto" { 
+            if inputSDColor == "auto" { 
                 if let par = formatDescription?.pixelAspectRatio {
-                    if (par.width == 16) || (par.width == 64) { inputColor = "pal" }
-                    if (par.width == 10) || (par.width == 40) { inputColor = "ntsc" }
+                    if (par.width == 16) || (par.width == 64) { inputSDColor = "pal" }
+                    if (par.width == 10) || (par.width == 40) { inputSDColor = "ntsc" }
                 }
             }
             // still not detected, so test for fps
-            if inputColor == "auto" { 
-                inputColor = fps == 25.0 ? "pal" : "ntsc"
+            if inputSDColor == "auto" { 
+                inputSDColor = fps == 25.0 ? "pal" : "ntsc"
             }
             // some rare cases where we can't detect, default to ntsc, inform the user
-            if inputColor == "auto" {
+            if inputSDColor == "auto" {
                 CommandLine.warn("Unable to detect SD color space, defaulting to NTSC. Overwrite with --color_input if needed.")
-                inputColor = "ntsc"
+                inputSDColor = "ntsc"
             }
         } else {
-            if inputColor != "auto" {
+            if inputSDColor != "auto" {
                 CommandLine.warn("--color_input is only applicable to SD content (<= 720x576), ignoring")
             }
-            inputColor = "none" // disable for non-SD content
+            inputSDColor = "none" // disable for non-SD content
         }
 
 
@@ -314,7 +314,7 @@ actor LogInfo {
             allowOverWrite: allowOverWrite,
             crop: cropRect,
             processAudio: !noaudio,
-            inputColor: inputColor
+            inputSDColor: inputSDColor
         )
  
         await logging.info("Video duration: \(videoLength), total frames: \(totalFrames)")
@@ -327,7 +327,7 @@ actor LogInfo {
                 ].joined()
             )
         }
-        let sdinfo = inputColor == "none" ? ":" : " SD \(inputColor.uppercased()):"      
+        let sdinfo = inputSDColor == "none" ? ":" : " SD \(inputSDColor.uppercased()):"      
         await logging.info("Upscaling\(sdinfo) \(Int(inputSize.width))x\(Int(inputSize.height)) to \(Int(outputSize.width))x\(Int(outputSize.height))")
         await logging.info(
             [

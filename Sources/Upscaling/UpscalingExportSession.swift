@@ -7,7 +7,7 @@ enum UpscaleColorProp {
     case uhd
 }
 
-struct SDColorProp {
+struct SourceColorProp {
     var prim: String
     var transfer: String
     var matrix: String
@@ -32,7 +32,7 @@ public class UpscalingExportSession {
         allowOverWrite: Bool = false,
         crop: CGRect? = nil,
         processAudio: Bool = true,
-        inputColor: String
+        inputSDColor: String
     ) {
         self.asset = asset
         self.outputCodec = outputCodec
@@ -54,7 +54,7 @@ public class UpscalingExportSession {
         self.allowOverWrite = allowOverWrite
         self.crop = crop
         self.processAudio = processAudio
-        self.inputColor = inputColor
+        self.inputSDColor = inputSDColor
         progress = Progress(
             parent: nil,
             userInfo: [
@@ -84,7 +84,7 @@ public class UpscalingExportSession {
     public let allowOverWrite: Bool
     public let crop: CGRect?
     public let processAudio: Bool
-    public let inputColor: String
+    public let inputSDColor: String
 
     public let progress: Progress
 
@@ -119,36 +119,36 @@ public class UpscalingExportSession {
             guard [.audio, .video].contains(track.mediaType) else { continue }
             let formatDescription = try await track.load(.formatDescriptions).first
 
-            // get color properties for SD content
-            var sdColor: SDColorProp? = nil
-            if inputColor != "none" {
-                // we have SD content       
-                if let colorPrimaries = formatDescription?.colorPrimaries,
+            var sourceColor: SourceColorProp? = nil
+            // first try to get color properties from source
+            if let colorPrimaries = formatDescription?.colorPrimaries,
                 let colorTransferFunction = formatDescription?.colorTransferFunction,
                 let colorYCbCrMatrix = formatDescription?.colorYCbCrMatrix
-                {
-                    // source has color properties
-                    sdColor = SDColorProp(
-                        prim: colorPrimaries,
-                        transfer: colorTransferFunction,
-                        matrix: colorYCbCrMatrix
+            {
+                // source has color properties
+                sourceColor = SourceColorProp(
+                    prim: colorPrimaries,
+                    transfer: colorTransferFunction,
+                    matrix: colorYCbCrMatrix
+                )
+            }
+            // if no color properties from source, check if we have SD content
+            // and set accordingly either detected or user provided SD color properties
+            if sourceColor == nil && inputSDColor != "none" {
+                // source has no color properties, so get detected SD colors
+                if inputSDColor == "pal" {
+                    sourceColor = SourceColorProp(
+                        prim: AVVideoColorPrimaries_EBU_3213,
+                        transfer: AVVideoTransferFunction_ITU_R_709_2,
+                        matrix: AVVideoYCbCrMatrix_ITU_R_601_4
                     )
-                } else {
-                    // source has no color properties, so get detected SD colors
-                    if inputColor == "pal" {
-                        sdColor = SDColorProp(
-                            prim: AVVideoColorPrimaries_EBU_3213,
-                            transfer: AVVideoTransferFunction_ITU_R_709_2,
-                            matrix: AVVideoYCbCrMatrix_ITU_R_601_4
-                        )
-                    }
-                    if (inputColor == "ntsc") {
-                            sdColor = SDColorProp(
-                            prim: AVVideoColorPrimaries_SMPTE_C,
-                            transfer: AVVideoTransferFunction_ITU_R_709_2,
-                            matrix: AVVideoYCbCrMatrix_ITU_R_601_4
-                        )
-                    }
+                }
+                if inputSDColor == "ntsc" {
+                    sourceColor = SourceColorProp(
+                        prim: AVVideoColorPrimaries_SMPTE_C,
+                        transfer: AVVideoTransferFunction_ITU_R_709_2,
+                        matrix: AVVideoYCbCrMatrix_ITU_R_601_4
+                    )
                 }
             }
 
@@ -156,7 +156,7 @@ public class UpscalingExportSession {
                 let assetReaderOutput = Self.assetReaderOutput(
                     for: track,
                     formatDescription: formatDescription,
-                    sdColor: sdColor
+                    sourceColor: sourceColor
                 )
             else { continue }
             
@@ -170,7 +170,7 @@ public class UpscalingExportSession {
                 bframes: bframes,
                 quality: quality,
                 prioritizeSpeed: prioritizeSpeed,
-                sdColor: sdColor
+                sourceColor: sourceColor
             )
             guard let assetWriterInput else { continue }
 
@@ -345,7 +345,7 @@ public class UpscalingExportSession {
     private static func assetReaderOutput(
         for track: AVAssetTrack,
         formatDescription: CMFormatDescription?,
-        sdColor: SDColorProp?
+        sourceColor: SourceColorProp?
     ) -> AVAssetReaderOutput? {
         switch track.mediaType {
         case .video:
@@ -360,14 +360,15 @@ public class UpscalingExportSession {
                 ]
             }
 
-            // Handle SD color space detection
-            if sdColor != nil
+            // if we have source color properties, set them
+            // for SD content, sourceColor is always set
+            // for HD/UHD content, sourceColor is only set if source has color properties
+            if sourceColor != nil
             {
-                // we have SD content, so set color properties, either detected or from source
                 outputSettings[AVVideoColorPropertiesKey] = [
-                    AVVideoColorPrimariesKey: sdColor?.prim,
-                    AVVideoTransferFunctionKey: sdColor?.transfer,
-                    AVVideoYCbCrMatrixKey: sdColor?.matrix,
+                    AVVideoColorPrimariesKey: sourceColor?.prim,
+                    AVVideoTransferFunctionKey: sourceColor?.transfer,
+                    AVVideoYCbCrMatrixKey: sourceColor?.matrix,
                 ]
             }
 
@@ -395,7 +396,7 @@ public class UpscalingExportSession {
         bframes: Bool,
         quality: Double,
         prioritizeSpeed: Bool,
-        sdColor: SDColorProp?
+        sourceColor: SourceColorProp?
     ) async throws -> (AVAssetWriterInput?) {
         switch track.mediaType {
         case .video:
@@ -420,40 +421,26 @@ public class UpscalingExportSession {
                 AVVideoPixelAspectRatioVerticalSpacingKey: Int(newSAR.height),
             ]
 
-            // Handle color properties
-            var needsColorConversion: UpscaleColorProp = .none
-            if sdColor != nil
-            {
-                // we have SD content, so set color properties, either detected or from source
-                outputSettings[AVVideoColorPropertiesKey] = [
-                    AVVideoColorPrimariesKey: sdColor?.prim,
-                    AVVideoTransferFunctionKey: sdColor?.transfer,
-                    AVVideoYCbCrMatrixKey: sdColor?.matrix,
-                ]
+            // if we have source color properties, conversion is needed if upscaling to HD/UHD
+            // for SD content, sourceColor is always set
+            // for HD/UHD content, sourceColor is only set if source has color properties
+            let needsColorConversion: UpscaleColorProp
+            if sourceColor != nil {
+                if outputSize.width >= 3840 || outputSize.height >= 2160 {
+                    needsColorConversion = .uhd
+                } else 
                 if outputSize.width >= 1280 || outputSize.height >= 720 {
                     needsColorConversion = .hd
-                }
-            } else {
-                // no SD content, so try to get colors from source
-                if let colorPrimaries = formatDescription?.colorPrimaries,
-                let colorTransferFunction = formatDescription?.colorTransferFunction,
-                let colorYCbCrMatrix = formatDescription?.colorYCbCrMatrix
-                {
-                    outputSettings[AVVideoColorPropertiesKey] = [
-                        AVVideoColorPrimariesKey: colorPrimaries,
-                        AVVideoTransferFunctionKey: colorTransferFunction,
-                        AVVideoYCbCrMatrixKey: colorYCbCrMatrix,
-                    ]
-                    if outputSize.width >= 1280 || outputSize.height >= 720 {
-                    needsColorConversion = .hd
-                    }
-                    if outputSize.width >= 3840 || outputSize.height >= 2160 {
-                        needsColorConversion = .uhd
-                    }
                 } else {
-                    // source has no color properties, so no conversion
+                    outputSettings[AVVideoColorPropertiesKey] = [
+                        AVVideoColorPrimariesKey: sourceColor?.prim,
+                        AVVideoTransferFunctionKey: sourceColor?.transfer,
+                        AVVideoYCbCrMatrixKey: sourceColor?.matrix,
+                    ]
                     needsColorConversion = .none
                 }
+            } else {
+                needsColorConversion = .none
             }
             // now set if upscaling requires conversion
             if needsColorConversion == .hd || needsColorConversion == .uhd
