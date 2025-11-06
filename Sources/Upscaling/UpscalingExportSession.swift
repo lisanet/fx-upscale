@@ -191,8 +191,7 @@ public class UpscalingExportSession {
                 mediaTracks.append(.audio(assetReaderOutput, assetWriterInput))
             } else if track.mediaType == .video {
                 progress.totalUnitCount += 10
-                if #available(macOS 14.0, iOS 17.0, *),
-                   formatDescription?.hasLeftAndRightEye ?? false
+                if formatDescription?.hasLeftAndRightEye ?? false
                 {
                     mediaTracks.append(
                         .spatialVideo(
@@ -261,20 +260,18 @@ public class UpscalingExportSession {
                                 progress: progress
                             )
                         case let .spatialVideo(output, input, inputSize, adaptor):
-                            if #available(macOS 14.0, iOS 17.0, *) {
-                                let progress = Progress(totalUnitCount: Int64(duration.seconds))
-                                self.progress.addChild(progress, withPendingUnitCount: 10)
-                                try await Self.processSpatialVideoSamples(
-                                    from: output,
-                                    to: input,
-                                    adaptor: adaptor
-                                        as! AVAssetWriterInputTaggedPixelBufferGroupAdaptor,
-                                    inputSize: inputSize,
-                                    outputSize: self.outputSize,
-                                    crop: self.crop,
-                                    progress: progress
-                                )
-                            }
+                            let progress = Progress(totalUnitCount: Int64(duration.seconds))
+                            self.progress.addChild(progress, withPendingUnitCount: 10)
+                            try await Self.processSpatialVideoSamples(
+                                from: output,
+                                to: input,
+                                adaptor: adaptor
+                                    as! AVAssetWriterInputTaggedPixelBufferGroupAdaptor,
+                                inputSize: inputSize,
+                                outputSize: self.outputSize,
+                                crop: self.crop,
+                                progress: progress
+                            )
                         }
                     }
                 }
@@ -352,8 +349,7 @@ public class UpscalingExportSession {
             var outputSettings: [String: Any] = [
                 kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
             ]
-            if #available(macOS 14.0, iOS 17.0, *),
-               formatDescription?.hasLeftAndRightEye ?? false
+            if formatDescription?.hasLeftAndRightEye ?? false
             {
                 outputSettings[AVVideoDecompressionPropertiesKey] = [
                     kVTDecompressionPropertyKey_RequestedMVHEVCVideoLayerIDs: [0, 1],
@@ -452,8 +448,7 @@ public class UpscalingExportSession {
                 ]   
             }
 
-            if #available(macOS 14.0, iOS 17.0, *),
-               formatDescription?.hasLeftAndRightEye ?? false
+            if formatDescription?.hasLeftAndRightEye ?? false
             {
                 var compressionProperties: [CFString: Any] = [:]
                 compressionProperties[kVTCompressionPropertyKey_MVHEVCVideoLayerIDs] = [0, 1]
@@ -637,7 +632,7 @@ public class UpscalingExportSession {
         } as Void
     }
 
-    @available(macOS 14.0, iOS 17.0, *) private static func processSpatialVideoSamples(
+    private static func processSpatialVideoSamples(
         from assetReaderOutput: AVAssetReaderOutput,
         to assetWriterInput: AVAssetWriterInput,
         adaptor: AVAssetWriterInputTaggedPixelBufferGroupAdaptor,
