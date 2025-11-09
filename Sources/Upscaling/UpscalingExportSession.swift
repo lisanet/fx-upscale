@@ -538,6 +538,8 @@ public class UpscalingExportSession {
             if let languageCode {
                 assetWriterInput.languageCode = languageCode
             }
+            // use original timescale to avoid jitter if fps is 23.976 fps / 29.97, assuming original was encoded correctly
+            assetWriterInput.mediaTimeScale = try await track.load(.naturalTimeScale)
             return (assetWriterInput)
         case .audio, .subtitle, .closedCaption:
             let assetWriterInput = AVAssetWriterInput(
