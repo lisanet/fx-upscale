@@ -116,7 +116,7 @@ public class UpscalingExportSession {
             if !processAudio, track.mediaType == .audio {
                 continue
             }
-            guard [.audio, .video].contains(track.mediaType) else { continue }
+            guard [.audio, .video, .subtitle, .closedCaption].contains(track.mediaType) else { continue }
             let formatDescription = try await track.load(.formatDescriptions).first
 
             let languageCode = try await track.load(.languageCode)
@@ -189,9 +189,9 @@ public class UpscalingExportSession {
                 throw Error.couldNotAddAssetWriterInput(track.mediaType)
             }
 
-            if track.mediaType == .audio {
+            if track.mediaType == .audio || [.subtitle, .closedCaption].contains(track.mediaType) {
                 progress.totalUnitCount += 1
-                mediaTracks.append(.audio(assetReaderOutput, assetWriterInput))
+                mediaTracks.append(.passthrough(assetReaderOutput, assetWriterInput))
             } else if track.mediaType == .video {
                 progress.totalUnitCount += 10
                 if formatDescription?.hasLeftAndRightEye ?? false
@@ -245,10 +245,10 @@ public class UpscalingExportSession {
                     group.addTask { [weak self] in
                         guard let self else { return }
                         switch mediaTrack {
-                        case let .audio(output, input):
+                        case let .passthrough(output, input):
                             let progress = Progress(totalUnitCount: Int64(duration.seconds))
                             self.progress.addChild(progress, withPendingUnitCount: 1)
-                            try await Self.processAudioSamples(
+                            try await Self.processPassthroughSamples(
                                 from: output, to: input, progress: progress)
                         case let .video(output, input, inputSize, adaptor):
                             let progress = Progress(totalUnitCount: Int64(duration.seconds))
@@ -307,7 +307,7 @@ public class UpscalingExportSession {
                 options: 0
             )
             _ = outputURL.withUnsafeFileSystemRepresentation { fileSystemPath in
-                value.withUnsafeBytes { 
+                value.withUnsafeBytes {
                     setxattr(
                         fileSystemPath,
                         "com.apple.metadata:kMDItemCreator",
@@ -324,7 +324,7 @@ public class UpscalingExportSession {
     // MARK: Private
 
     private enum MediaTrack: @unchecked Sendable {
-        case audio(
+        case passthrough(
             _ output: AVAssetReaderOutput,
             _ input: AVAssetWriterInput
         )
@@ -377,7 +377,7 @@ public class UpscalingExportSession {
             )
             assetReaderOutput.alwaysCopiesSampleData = false
             return assetReaderOutput
-        case .audio:
+        case .audio, .subtitle, .closedCaption:
             let assetReaderOutput = AVAssetReaderTrackOutput(track: track, outputSettings: nil)
             assetReaderOutput.alwaysCopiesSampleData = false
             return assetReaderOutput
@@ -413,7 +413,7 @@ public class UpscalingExportSession {
             let outputDIM = reducedAspectRatio(outputSize)
             // new SAR = origSAR * inputDIM / outputDAR
             let newSAR = reducedAspectRatio( CGSize(
-                width: origSAR.width * inputDIM.width * outputDIM.height, 
+                width: origSAR.width * inputDIM.width * outputDIM.height,
                 height: origSAR.height * inputDIM.height * outputDIM.width
             ))
             outputSettings[AVVideoPixelAspectRatioKey] = [
@@ -428,7 +428,7 @@ public class UpscalingExportSession {
             if sourceColor != nil {
                 if outputSize.width >= 3840 || outputSize.height >= 2160 {
                     needsColorConversion = .uhd
-                } else 
+                } else
                 if outputSize.width >= 1280 || outputSize.height >= 720 {
                     needsColorConversion = .hd
                 } else {
@@ -449,7 +449,7 @@ public class UpscalingExportSession {
                     AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
                     AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
                     AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
-                ]   
+                ]
             }
 
             if formatDescription?.hasLeftAndRightEye ?? false
@@ -536,31 +536,29 @@ public class UpscalingExportSession {
             assetWriterInput.transform = try await track.load(.preferredTransform)
             assetWriterInput.expectsMediaDataInRealTime = false
             return (assetWriterInput)
-        case .audio:
+        case .audio, .subtitle, .closedCaption:
             let assetWriterInput = AVAssetWriterInput(
-                mediaType: .audio,
+                mediaType: track.mediaType,
                 outputSettings: nil,
                 sourceFormatHint: formatDescription
             )
             assetWriterInput.expectsMediaDataInRealTime = false
-
             if let languageCode {
                 assetWriterInput.languageCode = languageCode
-            } 
-              
+            }
             return (assetWriterInput)
         default: return (nil)
-        } 
+        }
     }
 
-    private static func processAudioSamples(
+    private static func processPassthroughSamples(
         from assetReaderOutput: AVAssetReaderOutput,
         to assetWriterInput: AVAssetWriterInput,
         progress: Progress
     ) async throws {
         try await withCheckedThrowingContinuation { continuation in
             let queue = DispatchQueue(
-                label: "\(String(describing: Self.self)).audio.\(UUID().uuidString)",
+                label: "\(String(describing: Self.self)).passthrough.\(UUID().uuidString)",
                 qos: .userInitiated
             )
             assetWriterInput.requestMediaDataWhenReady(on: queue) {
