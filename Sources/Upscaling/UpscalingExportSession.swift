@@ -119,6 +119,8 @@ public class UpscalingExportSession {
             guard [.audio, .video].contains(track.mediaType) else { continue }
             let formatDescription = try await track.load(.formatDescriptions).first
 
+            let languageCode = try await track.load(.languageCode)
+
             var sourceColor: SourceColorProp? = nil
             // first try to get color properties from source
             if let colorPrimaries = formatDescription?.colorPrimaries,
@@ -159,7 +161,7 @@ public class UpscalingExportSession {
                     sourceColor: sourceColor
                 )
             else { continue }
-            
+
             let (assetWriterInput) = try await Self.assetWriterInput(
                 for: track,
                 formatDescription: formatDescription,
@@ -170,7 +172,8 @@ public class UpscalingExportSession {
                 bframes: bframes,
                 quality: quality,
                 prioritizeSpeed: prioritizeSpeed,
-                sourceColor: sourceColor
+                sourceColor: sourceColor,
+                languageCode: languageCode
             )
             guard let assetWriterInput else { continue }
 
@@ -392,7 +395,8 @@ public class UpscalingExportSession {
         bframes: Bool,
         quality: Double,
         prioritizeSpeed: Bool,
-        sourceColor: SourceColorProp?
+        sourceColor: SourceColorProp?,
+        languageCode: String?
     ) async throws -> (AVAssetWriterInput?) {
         switch track.mediaType {
         case .video:
@@ -539,6 +543,11 @@ public class UpscalingExportSession {
                 sourceFormatHint: formatDescription
             )
             assetWriterInput.expectsMediaDataInRealTime = false
+
+            if let languageCode {
+                assetWriterInput.languageCode = languageCode
+            } 
+              
             return (assetWriterInput)
         default: return (nil)
         } 
