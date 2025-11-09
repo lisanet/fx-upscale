@@ -535,6 +535,9 @@ public class UpscalingExportSession {
             )
             assetWriterInput.transform = try await track.load(.preferredTransform)
             assetWriterInput.expectsMediaDataInRealTime = false
+            if let languageCode {
+                assetWriterInput.languageCode = languageCode
+            }
             return (assetWriterInput)
         case .audio, .subtitle, .closedCaption:
             let assetWriterInput = AVAssetWriterInput(
