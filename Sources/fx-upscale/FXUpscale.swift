@@ -339,6 +339,7 @@ struct CodecOptions: ParsableArguments {
                 codec.bframes.boolValue ? "bframes" : nil,
                 "quality \(codec.quality)",
                 codec.gopSize.map { "gop \($0)" },
+                scale.sharpen.map { "sharpen \($0)" },
             ]
             .compactMap { $0 }
             .joined(separator: ", ")
