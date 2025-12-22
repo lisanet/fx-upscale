@@ -125,38 +125,39 @@ public class UpscalingExportSession {
             let languageCode = try await track.load(.languageCode)
 
             var sourceColor: SourceColorProp? = nil
-            // first try to get color properties from source
-            if let colorPrimaries = formatDescription?.colorPrimaries,
-                let colorTransferFunction = formatDescription?.colorTransferFunction,
-                let colorYCbCrMatrix = formatDescription?.colorYCbCrMatrix
-            {
-                // source has color properties
-                sourceColor = SourceColorProp(
-                    prim: colorPrimaries,
-                    transfer: colorTransferFunction,
-                    matrix: colorYCbCrMatrix
-                )
-            }
-            // if no color properties from source, check if we have SD content
-            // and set accordingly either detected or user provided SD color properties
-            if sourceColor == nil && inputSDColor != "none" {
-                // source has no color properties, so get detected SD colors
-                if inputSDColor == "pal" {
+            if track.mediaType == .video {
+                // first try to get color properties from source
+                if let colorPrimaries = formatDescription?.colorPrimaries,
+                    let colorTransferFunction = formatDescription?.colorTransferFunction,
+                    let colorYCbCrMatrix = formatDescription?.colorYCbCrMatrix
+                {
+                    // source has color properties
                     sourceColor = SourceColorProp(
-                        prim: AVVideoColorPrimaries_EBU_3213,
-                        transfer: AVVideoTransferFunction_ITU_R_709_2,
-                        matrix: AVVideoYCbCrMatrix_ITU_R_601_4
+                        prim: colorPrimaries,
+                        transfer: colorTransferFunction,
+                        matrix: colorYCbCrMatrix
                     )
                 }
-                if inputSDColor == "ntsc" {
-                    sourceColor = SourceColorProp(
-                        prim: AVVideoColorPrimaries_SMPTE_C,
-                        transfer: AVVideoTransferFunction_ITU_R_709_2,
-                        matrix: AVVideoYCbCrMatrix_ITU_R_601_4
-                    )
+                // if no color properties from source, check if we have SD content
+                // and set accordingly either detected or user provided SD color properties
+                if sourceColor == nil && inputSDColor != "none" {
+                    // source has no color properties, so get detected SD colors
+                    if inputSDColor == "pal" {
+                        sourceColor = SourceColorProp(
+                            prim: AVVideoColorPrimaries_EBU_3213,
+                            transfer: AVVideoTransferFunction_ITU_R_709_2,
+                            matrix: AVVideoYCbCrMatrix_ITU_R_601_4
+                        )
+                    }
+                    if inputSDColor == "ntsc" {
+                        sourceColor = SourceColorProp(
+                            prim: AVVideoColorPrimaries_SMPTE_C,
+                            transfer: AVVideoTransferFunction_ITU_R_709_2,
+                            matrix: AVVideoYCbCrMatrix_ITU_R_601_4
+                        )
+                    }
                 }
             }
-
             guard
                 let assetReaderOutput = Self.assetReaderOutput(
                     for: track,
