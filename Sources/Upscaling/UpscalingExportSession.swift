@@ -32,7 +32,8 @@ public class UpscalingExportSession {
         allowOverWrite: Bool = false,
         crop: CGRect? = nil,
         processAudio: Bool = true,
-        inputSDColor: String
+        inputSDColor: String,
+        sharpen: Double? = nil
     ) {
         self.asset = asset
         self.outputCodec = outputCodec
@@ -55,6 +56,7 @@ public class UpscalingExportSession {
         self.crop = crop
         self.processAudio = processAudio
         self.inputSDColor = inputSDColor
+        self.sharpen = sharpen
         progress = Progress(
             parent: nil,
             userInfo: [
@@ -85,6 +87,7 @@ public class UpscalingExportSession {
     public let crop: CGRect?
     public let processAudio: Bool
     public let inputSDColor: String
+    public let sharpen: Double?
 
     public let progress: Progress
 
@@ -260,6 +263,7 @@ public class UpscalingExportSession {
                                 inputSize: inputSize,
                                 outputSize: self.outputSize,
                                 crop: self.crop,
+                                sharpen: self.sharpen,
                                 progress: progress
                             )
                         case let .spatialVideo(output, input, inputSize, adaptor):
@@ -273,6 +277,7 @@ public class UpscalingExportSession {
                                 inputSize: inputSize,
                                 outputSize: self.outputSize,
                                 crop: self.crop,
+                                sharpen: self.sharpen,
                                 progress: progress
                             )
                         }
@@ -595,9 +600,10 @@ public class UpscalingExportSession {
         inputSize: CGSize,
         outputSize: CGSize,
         crop: CGRect?,
+        sharpen: Double?,
         progress: Progress
     ) async throws {
-        guard let upscaler = Upscaler(inputSize: inputSize, outputSize: outputSize, crop: crop) else {
+        guard let upscaler = Upscaler(inputSize: inputSize, outputSize: outputSize, crop: crop, sharpen: sharpen) else {
             throw Error.failedToCreateUpscaler
         }
         try await withCheckedThrowingContinuation { continuation in
@@ -651,9 +657,10 @@ public class UpscalingExportSession {
         inputSize: CGSize,
         outputSize: CGSize,
         crop: CGRect?,
+        sharpen: Double?,
         progress: Progress
     ) async throws {
-        guard let upscaler = Upscaler(inputSize: inputSize, outputSize: outputSize, crop: crop) else {
+        guard let upscaler = Upscaler(inputSize: inputSize, outputSize: outputSize, crop: crop, sharpen: sharpen) else {
             throw Error.failedToCreateUpscaler
         }
         try await withCheckedThrowingContinuation { continuation in

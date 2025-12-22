@@ -10,7 +10,7 @@ import MetalFX
 public final class Upscaler {
     // MARK: Lifecycle
 
-    public init?(inputSize: CGSize, outputSize: CGSize, crop: CGRect? = nil) {
+    public init?(inputSize: CGSize, outputSize: CGSize, crop: CGRect? = nil, sharpen: Double? = nil) {
         let spatialScalerDescriptor = MTLFXSpatialScalerDescriptor()
         spatialScalerDescriptor.inputSize = inputSize
         spatialScalerDescriptor.outputSize = outputSize
@@ -32,6 +32,21 @@ public final class Upscaler {
         self.spatialScaler = spatialScaler
         self.intermediateOutputTexture = intermediateOutputTexture
         self.crop = crop
+        self.sharpenBounds = CGRect(origin: .zero, size: outputSize)
+        if let sharpen {    
+             ciContext = CIContext(mtlDevice: device, options: [
+                .workingColorSpace: CGColorSpace(name: CGColorSpace.linearSRGB)!,
+                .useSoftwareRenderer: false,
+                .workingFormat: CIFormat.RGBAh, // should be better in dark areas, but slower
+                .cacheIntermediates: false
+            ])
+            sharpenFilter = CIFilter(name: "CISharpenLuminance")
+            sharpenFilter?.setValue(sharpen, forKey: kCIInputSharpnessKey)
+        
+        }  else {
+            ciContext = nil
+            sharpenFilter = nil
+        }
         var textureCache: CVMetalTextureCache?
         CVMetalTextureCacheCreate(nil, nil, device, nil, &textureCache)
         guard let textureCache else { return nil }
@@ -132,6 +147,10 @@ public final class Upscaler {
     private let textureCache: CVMetalTextureCache
     private let pixelBufferPool: CVPixelBufferPool
     private let crop: CGRect?
+    private let ciContext: CIContext?
+    private let sharpenFilter: CIFilter?
+    private let sharpenBounds: CGRect
+    private let linearSRGB = CGColorSpace(name: CGColorSpace.linearSRGB)!
 
     private func upscaleCommandBuffer(
         _ pixelBuffer: CVPixelBuffer,
@@ -223,9 +242,18 @@ public final class Upscaler {
         spatialScaler.outputTexture = intermediateOutputTexture
         spatialScaler.encode(commandBuffer: commandBuffer)
 
-        let blitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
-        blitCommandEncoder?.copy(from: intermediateOutputTexture, to: upscaledTexture)
-        blitCommandEncoder?.endEncoding()
+        if let ciContext, let sharpenFilter {
+            let imageToFilter = CIImage(mtlTexture: intermediateOutputTexture, options: [ .colorSpace: linearSRGB ])!
+            sharpenFilter.setValue(imageToFilter, forKey: kCIInputImageKey)
+            if let sharpenedImage = sharpenFilter.outputImage {
+                ciContext.render(sharpenedImage, to: upscaledTexture, commandBuffer: commandBuffer, 
+                            bounds: sharpenBounds, colorSpace: linearSRGB)
+            }
+         } else {
+            let blitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
+            blitCommandEncoder?.copy(from: intermediateOutputTexture, to: upscaledTexture)
+            blitCommandEncoder?.endEncoding()
+        }
 
         return (commandBuffer, outputPixelBuffer)
     }

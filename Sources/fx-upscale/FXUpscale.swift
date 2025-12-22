@@ -118,7 +118,9 @@ struct ScaleOptions: ParsableArguments {
     @Flag(name: [.customShort("1"), .long], help: "Scale anamorphic video to square pixels when using --target")
     var square: Bool = false
     @Option(name: [.customShort("r"), .long], help: ArgumentHelp("Crop rectangle 'width:height:left:top'. Applied before upscaling.", valueName: "rect"))
-    var crop: CropRect?   
+    var crop: CropRect?
+    @Option(name: .shortAndLong, help: ArgumentHelp("Sharpen video after upscaling. Recommended values: 0.5 - 0.9 (fhd) ", valueName: "amount"))
+    var sharpen: Double?   
 }
 
 struct CodecOptions: ParsableArguments {
@@ -315,7 +317,8 @@ struct CodecOptions: ParsableArguments {
             allowOverWrite: file.allowOverWrite,
             crop: cropRect,
             processAudio: !file.noaudio,
-            inputSDColor: file.inputSDColor
+            inputSDColor: file.inputSDColor,
+            sharpen: scale.sharpen
         )
  
         await logging.info("Video duration: \(videoLength), total frames: \(totalFrames)")
