@@ -75,6 +75,7 @@ SCALING OPTIONS:
                            '8k' (7680x4320)
   -1, --square            Scale anamorphic video to square pixels when using --target
   -r, --crop <rect>       Crop rectangle 'width:height:left:top'. Applied before upscaling.
+  -s, --sharpen <amount>  Sharpen video after upscaling. Recommended values: 0.5 - 0.9 (fhd) 
 
 CODEC OPTIONS:
   -c, --codec <codec>     output codec: 'hevc', 'prores', or 'h264 (default: hevc)
@@ -111,7 +112,15 @@ The recommended value is **58**.
 
 The `--prio_speed` option sets VideoToolbox’s `kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality`. You can use yes/no, true/false or 1/0 to enable/disable this option. The default is enabled.
 
-While this slightly reduces theoretical quality, the visual impact is minimal — and encoding speed improves dramatically, especially on Apple Silicon.  
+While this slightly reduces theoretical quality, the visual impact is minimal — and encoding speed improves dramatically, especially on Apple Silicon.
+
+### 🔪 Sharpening
+
+The `--sharpen` option sharpens the video after upscaling. It uses the luminance channel only for sharpening, which results in fewer halos and less color shifting compared to an unsharp mask filter.
+
+The optimal values depend on the upscaled resolution. Higher resolutions may allow the use of higher values. For FHD content, recommended values range between 0.5 and 0.9.
+
+Use this option with care to avoid oversharpening. Recent DVD content usually does not require additional sharpening.
 
 ### 🧪 Example
 
@@ -133,6 +142,11 @@ Upscale a 1080p letterboxed video, crop it before upscaling to 4K with aspect 2.
 fx-upscale -i input.mp4 --crop 1920:800:0:0 -t 4k -q 60 -b 0 --prio_speed no -o output_4k.mov
 ```
 
+Upscale a 576p DVD video to FHD with reasonable high quality, use speed mode an b-frames, sharpen slightly, verbose output
+
+```bash
+fx-upscale -i input.mp4 -t fhd -q 60 --sharpen 0.7 -o output_fhd.mp4
+```
 
 ### 📬 License
 
