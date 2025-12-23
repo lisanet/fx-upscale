@@ -22,7 +22,7 @@ public final class Upscaler {
         textureDescriptor.height = Int(outputSize.height)
         textureDescriptor.pixelFormat = .bgra8Unorm
         textureDescriptor.storageMode = .private
-        textureDescriptor.usage = [.renderTarget, .shaderRead]
+        textureDescriptor.usage = [.shaderWrite, .shaderRead]
         guard let device = MTLCreateSystemDefaultDevice(),
             let commandQueue = device.makeCommandQueue(),
             let spatialScaler = spatialScalerDescriptor.makeSpatialScaler(device: device),
@@ -37,7 +37,7 @@ public final class Upscaler {
              ciContext = CIContext(mtlDevice: device, options: [
                 .workingColorSpace: CGColorSpace(name: CGColorSpace.linearSRGB)!,
                 .useSoftwareRenderer: false,
-                .workingFormat: CIFormat.RGBAh, // should be better in dark areas, but slower
+                .workingFormat: CIFormat.BGRA8, // BGRA8 matches the texture format and is much faster than RGBAh
                 .cacheIntermediates: false
             ])
             sharpenFilter = CIFilter(name: "CISharpenLuminance")
