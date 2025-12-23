@@ -22,7 +22,12 @@ let package = Package(
                 "Upscaling"
             ]
         ),
-        .target(name: "Upscaling"),
+        .target(
+            name: "Upscaling",
+            resources: [
+                .process("Shaders/Sharpen.metal"),
+            ]
+        ),
         .testTarget(
             name: "UpscalingTests",
             dependencies: ["Upscaling"],
