@@ -10,7 +10,7 @@ import MetalFX
 public final class Upscaler {
     // MARK: Lifecycle
 
-    public init?(inputSize: CGSize, outputSize: CGSize, crop: CGRect? = nil, sharpen: Double? = nil) {
+    public init?(inputSize: CGSize, outputSize: CGSize, crop: CGRect? = nil, sharpen: Float? = nil) {
         let spatialScalerDescriptor = MTLFXSpatialScalerDescriptor()
         spatialScalerDescriptor.inputSize = inputSize
         spatialScalerDescriptor.outputSize = outputSize
@@ -157,7 +157,7 @@ public final class Upscaler {
     private let textureCache: CVMetalTextureCache
     private let pixelBufferPool: CVPixelBufferPool
     private let crop: CGRect?
-    private let sharpen: Double?
+    private let sharpen: Float?
     private let sharpenPipelineState: MTLComputePipelineState?
 
     private func upscaleCommandBuffer(
@@ -258,8 +258,8 @@ public final class Upscaler {
             computeCommandEncoder.setTexture(intermediateOutputTexture, index: 0)
             computeCommandEncoder.setTexture(upscaledTexture, index: 1)
             
-            // Convert Double to Float and pass a pointer to a stable variable
-            var sharpnessFloat = Float(sharpnessDouble)
+            // pass a pointer to a stable variable
+            var sharpnessFloat = sharpnessDouble
             computeCommandEncoder.setBytes(&sharpnessFloat, length: MemoryLayout<Float>.size, index: 0)
 
             let threadgroupSize = MTLSize(width: 16, height: 16, depth: 1)
