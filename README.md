@@ -1,6 +1,6 @@
-## 🎞️ fx-upscale – Metal-Powered Video Upscaling
+## 🎞️ mx-upscale – Metal-Powered Video Upscaling
 
-`fx-upscale` is a fast, Metal-based command-line tool for upscaling videos on macOS — optimized for Apple Silicon and modern GPUs.
+`mx-upscale` is a fast, Metal-based command-line tool for upscaling videos on macOS — optimized for Apple Silicon and modern GPUs.
 
 
 ### ✅ Features
@@ -15,19 +15,19 @@
 
 ### 🚀 Installation
 
-There are several ways to install `fx-upscale`
+There are several ways to install `mx-upscale`
 
 1. **Downloading the release package**
 
-    The easiest way to install `fx-upscale` is to download the latest release package.
+    The easiest way to install `mx-upscale` is to download the latest release package.
    After downloading and unpacking the archive (by double-clicking it), you’ll need to remove the quarantine attribute to satisfy Apple’s Gatekeeper and then copy the binary to a folder in your PATH - usually `/usr/local/bin`.
 
-   Assuming the unpacked `fx-upscale` binary is in your **Downloads** folder, run
+   Assuming the unpacked `mx-upscale` binary is in your **Downloads** folder, run
 
    ```bash
     cd ~/Downloads
-    xattr -c fx-upscale
-    sudo cp fx-upscale /usr/local/bin
+    xattr -c mx-upscale
+    sudo cp mx-upscale /usr/local/bin
     ```
     
 3. **Compiling from source**
@@ -35,27 +35,27 @@ There are several ways to install `fx-upscale`
    Clone the repo
    
    ```bash
-   git clone https://github.com/lisanet/fx-upscale.git
+   git clone https://github.com/lisanet/mx-upscale.git
    ```
 
    Then navigate to the directory and build the source
 
     ```bash
-    cd fx-upscale
+    cd mx-upscale
     swift build -c release
     ```
 
-    The resulting binary will be located in `.build/release/fx-upscale`. Finally, copy it into a directory in your PATH.
+    The resulting binary will be located in `.build/release/mx-upscale`. Finally, copy it into a directory in your PATH.
 
    ```bash
-   sudo cp .build/release/fx-upscale /usr/local/bin
+   sudo cp .build/release/mx-upscale /usr/local/bin
    ```
 
 
 ### ⚙️ Usage
 
 ```
-USAGE: fx-upscale -i input-file [options]
+USAGE: mx-upscale -i input-file [options]
 
 FILE OPTIONS:
   -i, --input <input>     input video file to upscale. This option is required.
@@ -127,25 +127,25 @@ Use this option with care to avoid oversharpening. Recent DVD content usually do
 Upscale a 1080p video to 4K with very high quality. The default scaling factor is 2.0. Verbose output.
 
 ```bash
-fx-upscale -i input.mp4 -q 80 -o output_4k.mov
+mx-upscale -i input.mp4 -q 80 -o output_4k.mov
 ```
 
 Upscale a PAL video with 720x576 anamorphic encoded video to FullHD non-anamorph 1920x1080 with reasonable high quality (58) and using Speed-priority Mode and B-Frames. Be quiet, no info output
 
 ```bash
-fx-upscale -i input.mp4 -width 1920 -height 1080 --quiet -o output_4k.mov
+mx-upscale -i input.mp4 -width 1920 -height 1080 --quiet -o output_4k.mov
 ```
 
 Upscale a 1080p letterboxed video, crop it before upscaling to 4K with aspect 2.39:1 and reasonable high quality, disabling Speed-priority Mode and using no B-Frames, verbose output
 
 ```bash
-fx-upscale -i input.mp4 --crop 1920:800:0:0 -t 4k -q 60 -b 0 --prio_speed no -o output_4k.mov
+mx-upscale -i input.mp4 --crop 1920:800:0:0 -t 4k -q 60 -b 0 --prio_speed no -o output_4k.mov
 ```
 
 Upscale a 576p DVD video to FHD with reasonable high quality, use speed mode an b-frames, sharpen slightly, verbose output
 
 ```bash
-fx-upscale -i input.mp4 -t fhd -q 60 --sharpen 0.7 -o output_fhd.mp4
+mx-upscale -i input.mp4 -t fhd -q 60 --sharpen 0.7 -o output_fhd.mp4
 ```
 
 ### 📬 License
@@ -159,5 +159,5 @@ Contributions, bug reports, and feature requests are welcome. Please open an iss
 
 ### ⚠️ Disclaimer
 
-`fx-upscale` is provided **'as is'** without any warranty.  
+`mx-upscale` is provided **'as is'** without any warranty.  
 Use at your own risk and ensure you have backups of your original media.

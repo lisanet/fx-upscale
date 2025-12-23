@@ -3,10 +3,10 @@
 import PackageDescription
 
 let package = Package(
-    name: "fx-upscale",
+    name: "mx-upscale",
     platforms: [.macOS(.v14), .iOS(.v17)],
     products: [
-        .executable(name: "fx-upscale", targets: ["fx-upscale"]),
+        .executable(name: "mx-upscale", targets: ["mx-upscale"]),
         .library(name: "Upscaling", targets: ["Upscaling"])
     ],
     dependencies: [
@@ -15,7 +15,7 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "fx-upscale",
+            name: "mx-upscale",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "SwiftTUI", package: "SwiftTUI"),

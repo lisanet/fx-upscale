@@ -505,7 +505,7 @@ public class UpscalingExportSession {
                     // GOP size
                     gopSize.map { compression[AVVideoMaxKeyFrameIntervalKey] = $0 }
 
-                    // Enable B-frames by default unless explicitly allowed, see FXUpscale.swift
+                    // Enable B-frames by default unless explicitly allowed, see MXUpscale.swift
                     compression[AVVideoAllowFrameReorderingKey] = bframes
                     // set temporal compression according to b-frames
                     compression[String(kVTCompressionPropertyKey_AllowTemporalCompression)] = bframes

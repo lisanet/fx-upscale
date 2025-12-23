@@ -4,7 +4,7 @@ import Foundation
 import SwiftTUI
 import Upscaling
 
-// MARK: - MetalFXUpscale
+// MARK: - MetalMXUpscale
 
 let version: String = "2.6.1-skl"
 
@@ -136,10 +136,10 @@ struct CodecOptions: ParsableArguments {
     var prioritizeSpeed: FlagBool = .yes
 }
 
-@main struct FXUpscale: AsyncParsableCommand {
+@main struct MXUpscale: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Metal-based video upscale.",
-        usage: "fx-upscale -i input-file [options]",
+        usage: "mx-upscale -i input-file [options]",
         version: version,
         helpNames: .long
     )

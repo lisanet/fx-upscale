@@ -4,20 +4,20 @@
       "type": "swift",
       "request": "launch",
       "args": [],
-      "cwd": "${workspaceFolder:fx-upscale}",
-      "name": "Debug fx-upscale",
-      "preLaunchTask": "swift: Build Debug fx-upscale",
-      "target": "fx-upscale",
+      "cwd": "${workspaceFolder:mx-upscale}",
+      "name": "Debug mx-upscale",
+      "preLaunchTask": "swift: Build Debug mx-upscale",
+      "target": "mx-upscale",
       "configuration": "debug"
     },
     {
       "type": "swift",
       "request": "launch",
       "args": [],
-      "cwd": "${workspaceFolder:fx-upscale}",
-      "name": "Release fx-upscale",
-      "preLaunchTask": "swift: Build Release fx-upscale",
-      "target": "fx-upscale",
+      "cwd": "${workspaceFolder:mx-upscale}",
+      "name": "Release mx-upscale",
+      "preLaunchTask": "swift: Build Release mx-upscale",
+      "target": "mx-upscale",
       "configuration": "release"
     }
   ]
