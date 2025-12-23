@@ -4,6 +4,10 @@ import CoreVideo
 import Foundation
 import MetalFX
 
+struct SharpenParams {
+    var sharpness: Float
+    var useBT709: UInt32
+}
 
 // MARK: - Upscaler
 
@@ -33,8 +37,11 @@ public final class Upscaler {
         self.intermediateOutputTexture = intermediateOutputTexture
         self.crop = crop
         self.sharpen = sharpen
+        self.useBT709 = outputSize.width >= 1280 || outputSize.height >= 720
 
-        if sharpen != nil {
+        var sharpenPipelineState: MTLComputePipelineState? = nil
+        let sharpenParamsBuffer = device.makeBuffer(length: MemoryLayout<SharpenParams>.stride,options: [])!
+        if let sharpen {
             do {
                 guard let shaderURL = Bundle.module.url(
                     forResource: "Sharpen",
@@ -46,6 +53,11 @@ public final class Upscaler {
                 let library = try device.makeLibrary(source: source, options: nil)
                 if let sharpenLumaFunction = library.makeFunction(name: "sharpenLuma") {
                     sharpenPipelineState = try device.makeComputePipelineState(function: sharpenLumaFunction)
+                    var sharpenParams = SharpenParams(
+                        sharpness: Float(sharpen),
+                        useBT709: useBT709 ? 1 : 0
+                    )
+                    sharpenParamsBuffer.contents().copyMemory(from: &sharpenParams, byteCount: MemoryLayout<SharpenParams>.stride)
                 } else {
                     sharpenPipelineState = nil
                 }
@@ -56,6 +68,8 @@ public final class Upscaler {
         } else {
             sharpenPipelineState = nil
         }
+        self.sharpenPipelineState = sharpenPipelineState
+        self.sharpenParamsBuffer = sharpenParamsBuffer
 
         var textureCache: CVMetalTextureCache?
         CVMetalTextureCacheCreate(nil, nil, device, nil, &textureCache)
@@ -158,7 +172,9 @@ public final class Upscaler {
     private let pixelBufferPool: CVPixelBufferPool
     private let crop: CGRect?
     private let sharpen: Float?
+    private let useBT709: Bool
     private let sharpenPipelineState: MTLComputePipelineState?
+    private let sharpenParamsBuffer: MTLBuffer
 
     private func upscaleCommandBuffer(
         _ pixelBuffer: CVPixelBuffer,
@@ -257,10 +273,7 @@ public final class Upscaler {
             computeCommandEncoder.setComputePipelineState(pipelineState)
             computeCommandEncoder.setTexture(intermediateOutputTexture, index: 0)
             computeCommandEncoder.setTexture(upscaledTexture, index: 1)
-            
-            // pass a pointer to a stable variable
-            var sharpnessFloat = sharpnessDouble
-            computeCommandEncoder.setBytes(&sharpnessFloat, length: MemoryLayout<Float>.size, index: 0)
+            computeCommandEncoder.setBuffer(sharpenParamsBuffer, offset: 0, index: 0)
 
             let threadgroupSize = MTLSize(width: 16, height: 16, depth: 1)
             let threadgroupCount = MTLSize(

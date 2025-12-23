@@ -1,14 +1,25 @@
 #include <metal_stdlib>
 using namespace metal;
 
+struct SharpenParams {
+    float sharpness;
+    uint  useBT709;   // 0 = BT.601, 1 = BT.709
+};
+
 // YUV color space conversion constants
-constant float3 kLumaWeights = float3(0.299, 0.587, 0.114);
+//constant float3 kLumaWeights = float3(0.299, 0.587, 0.114);
+
+float rgb_to_luma(float3 rgb, bool useBT709) {
+    return useBT709
+        ? dot(rgb, float3(0.2126, 0.7152, 0.0722))   // BT.709
+        : dot(rgb, float3(0.2990, 0.5870, 0.1140));  // BT.601
+}
 
 // A simple sharpening kernel that operates only on the luma channel.
 // It uses a 3x3 convolution filter for an unsharp mask effect.
 kernel void sharpenLuma(texture2d<float, access::read> inTexture [[texture(0)]],
                         texture2d<float, access::write> outTexture [[texture(1)]],
-                        constant float &sharpness [[buffer(0)]],
+                        constant SharpenParams& params [[buffer(0)]],
                         uint2 gid [[thread_position_in_grid]])
 {
     // Ensure we don't read/write outside of the texture bounds
@@ -20,7 +31,8 @@ kernel void sharpenLuma(texture2d<float, access::read> inTexture [[texture(0)]],
 
     // 1. Get the original color and calculate its luma
     float4 originalColor = inTexture.read(gid);
-    float originalLuma = dot(originalColor.rgb, kLumaWeights);
+    float originalLuma = rgb_to_luma(originalColor.rgb, params.useBT709);
+    //float originalLuma = dot(originalColor.rgb, kLumaWeights);
 
     // 2. Create a blurred version of the luma by averaging neighbors (3x3 box blur)
     float blurredLuma = 0.0;
@@ -32,7 +44,8 @@ kernel void sharpenLuma(texture2d<float, access::read> inTexture [[texture(0)]],
             sampleCoord.y = clamp(sampleCoord.y, uint(0), inTexture.get_height() - 1);
             
             float4 neighborColor = inTexture.read(sampleCoord);
-            blurredLuma += dot(neighborColor.rgb, kLumaWeights);
+            //blurredLuma += dot(neighborColor.rgb, kLumaWeights);
+            blurredLuma += rgb_to_luma(neighborColor.rgb, params.useBT709);
         }
     }
     blurredLuma /= 9.0;
@@ -40,7 +53,7 @@ kernel void sharpenLuma(texture2d<float, access::read> inTexture [[texture(0)]],
     // 3. Calculate the "unsharp mask" (difference between original and blurred luma)
     //    and apply the sharpness factor.
     float mask = originalLuma - blurredLuma;
-    float sharpenedLuma = originalLuma + (mask * sharpness);
+    float sharpenedLuma = originalLuma + (mask * params.sharpness);
 
     // 4. Calculate the difference in luma and add it back to the original RGB channels.
     //    This preserves the original hue and saturation.
