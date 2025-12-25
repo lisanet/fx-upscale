@@ -4,13 +4,17 @@ import CoreVideo
 import Foundation
 import MetalFX
 
+struct SharpenParams {
+    var sharpness: Float
+    var useBT709: UInt32
+}
 
 // MARK: - Upscaler
 
 public final class Upscaler {
     // MARK: Lifecycle
 
-    public init?(inputSize: CGSize, outputSize: CGSize, crop: CGRect? = nil, sharpen: Double? = nil) {
+    public init?(inputSize: CGSize, outputSize: CGSize, crop: CGRect? = nil, sharpen: Float? = nil) {
         let spatialScalerDescriptor = MTLFXSpatialScalerDescriptor()
         spatialScalerDescriptor.inputSize = inputSize
         spatialScalerDescriptor.outputSize = outputSize
@@ -32,21 +36,41 @@ public final class Upscaler {
         self.spatialScaler = spatialScaler
         self.intermediateOutputTexture = intermediateOutputTexture
         self.crop = crop
-        self.sharpenBounds = CGRect(origin: .zero, size: outputSize)
-        if let sharpen {    
-             ciContext = CIContext(mtlDevice: device, options: [
-                .workingColorSpace: CGColorSpace(name: CGColorSpace.linearSRGB)!,
-                .useSoftwareRenderer: false,
-                .workingFormat: CIFormat.BGRA8, // BGRA8 matches the texture format and is much faster than RGBAh
-                .cacheIntermediates: false
-            ])
-            sharpenFilter = CIFilter(name: "CISharpenLuminance")
-            sharpenFilter?.setValue(sharpen, forKey: kCIInputSharpnessKey)
-        
-        }  else {
-            ciContext = nil
-            sharpenFilter = nil
+        self.sharpen = sharpen
+        self.useBT709 = outputSize.width >= 1280 || outputSize.height >= 720
+
+        var sharpenPipelineState: MTLComputePipelineState? = nil
+        let sharpenParamsBuffer = device.makeBuffer(length: MemoryLayout<SharpenParams>.stride,options: [])!
+        if let sharpen {
+            do {
+                guard let shaderURL = Bundle.module.url(
+                    forResource: "Sharpen",
+                    withExtension: "metal"
+                ) else {
+                    throw Error.metalLibraryNotFound("Sharpen.metal")
+                }
+                let source = try String(contentsOf: shaderURL)
+                let library = try device.makeLibrary(source: source, options: nil)
+                if let sharpenLumaFunction = library.makeFunction(name: "sharpenLuma") {
+                    sharpenPipelineState = try device.makeComputePipelineState(function: sharpenLumaFunction)
+                    var sharpenParams = SharpenParams(
+                        sharpness: Float(sharpen),
+                        useBT709: useBT709 ? 1 : 0
+                    )
+                    sharpenParamsBuffer.contents().copyMemory(from: &sharpenParams, byteCount: MemoryLayout<SharpenParams>.stride)
+                } else {
+                    sharpenPipelineState = nil
+                }
+            } catch {
+                print("Failed to create Metal library from source: \(error)")
+                sharpenPipelineState = nil
+            }
+        } else {
+            sharpenPipelineState = nil
         }
+        self.sharpenPipelineState = sharpenPipelineState
+        self.sharpenParamsBuffer = sharpenParamsBuffer
+
         var textureCache: CVMetalTextureCache?
         CVMetalTextureCacheCreate(nil, nil, device, nil, &textureCache)
         guard let textureCache else { return nil }
@@ -147,10 +171,10 @@ public final class Upscaler {
     private let textureCache: CVMetalTextureCache
     private let pixelBufferPool: CVPixelBufferPool
     private let crop: CGRect?
-    private let ciContext: CIContext?
-    private let sharpenFilter: CIFilter?
-    private let sharpenBounds: CGRect
-    private let linearSRGB = CGColorSpace(name: CGColorSpace.linearSRGB)!
+    private let sharpen: Float?
+    private let useBT709: Bool
+    private let sharpenPipelineState: MTLComputePipelineState?
+    private let sharpenParamsBuffer: MTLBuffer
 
     private func upscaleCommandBuffer(
         _ pixelBuffer: CVPixelBuffer,
@@ -242,14 +266,24 @@ public final class Upscaler {
         spatialScaler.outputTexture = intermediateOutputTexture
         spatialScaler.encode(commandBuffer: commandBuffer)
 
-        if let ciContext, let sharpenFilter {
-            let imageToFilter = CIImage(mtlTexture: intermediateOutputTexture, options: [ .colorSpace: linearSRGB ])!
-            sharpenFilter.setValue(imageToFilter, forKey: kCIInputImageKey)
-            if let sharpenedImage = sharpenFilter.outputImage {
-                ciContext.render(sharpenedImage, to: upscaledTexture, commandBuffer: commandBuffer, 
-                            bounds: sharpenBounds, colorSpace: linearSRGB)
+        if let pipelineState = sharpenPipelineState, let sharpnessDouble = sharpen {
+            guard let computeCommandEncoder = commandBuffer.makeComputeCommandEncoder() else {
+                throw Error.couldNotMakeCommandBuffer
             }
-         } else {
+            computeCommandEncoder.setComputePipelineState(pipelineState)
+            computeCommandEncoder.setTexture(intermediateOutputTexture, index: 0)
+            computeCommandEncoder.setTexture(upscaledTexture, index: 1)
+            computeCommandEncoder.setBuffer(sharpenParamsBuffer, offset: 0, index: 0)
+
+            let threadgroupSize = MTLSize(width: 16, height: 16, depth: 1)
+            let threadgroupCount = MTLSize(
+                width: (intermediateOutputTexture.width + threadgroupSize.width - 1) / threadgroupSize.width,
+                height: (intermediateOutputTexture.height + threadgroupSize.height - 1) / threadgroupSize.height,
+                depth: 1
+            )
+            computeCommandEncoder.dispatchThreadgroups(threadgroupCount, threadsPerThreadgroup: threadgroupSize)
+            computeCommandEncoder.endEncoding()
+        } else {
             let blitCommandEncoder = commandBuffer.makeBlitCommandEncoder()
             blitCommandEncoder?.copy(from: intermediateOutputTexture, to: upscaledTexture)
             blitCommandEncoder?.endEncoding()
@@ -267,6 +301,7 @@ extension Upscaler {
         case couldNotCreatePixelBuffer
         case couldNotCreateMetalTexture
         case couldNotMakeCommandBuffer
+        case metalLibraryNotFound(String)
 
         public var errorDescription: String? {
             switch self {
@@ -289,6 +324,11 @@ extension Upscaler {
                 return NSLocalizedString(
                     "Could not make command buffer",
                     comment: "Upscaler error description for could not make command buffer."
+                )
+            case .metalLibraryNotFound(let message):
+                return NSLocalizedString(
+                    "Could not find Metal library: \(message)",
+                    comment: "Upscaler error description for could not find Metal library."
                 )
             }
         }

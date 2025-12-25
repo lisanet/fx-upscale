@@ -33,7 +33,7 @@ public class UpscalingExportSession {
         crop: CGRect? = nil,
         processAudio: Bool = true,
         inputSDColor: String,
-        sharpen: Double? = nil
+        sharpen: Float? = nil
     ) {
         self.asset = asset
         self.outputCodec = outputCodec
@@ -87,7 +87,7 @@ public class UpscalingExportSession {
     public let crop: CGRect?
     public let processAudio: Bool
     public let inputSDColor: String
-    public let sharpen: Double?
+    public let sharpen: Float?
 
     public let progress: Progress
 
@@ -601,7 +601,7 @@ public class UpscalingExportSession {
         inputSize: CGSize,
         outputSize: CGSize,
         crop: CGRect?,
-        sharpen: Double?,
+        sharpen: Float?,
         progress: Progress
     ) async throws {
         guard let upscaler = Upscaler(inputSize: inputSize, outputSize: outputSize, crop: crop, sharpen: sharpen) else {
@@ -658,7 +658,7 @@ public class UpscalingExportSession {
         inputSize: CGSize,
         outputSize: CGSize,
         crop: CGRect?,
-        sharpen: Double?,
+        sharpen: Float?,
         progress: Progress
     ) async throws {
         guard let upscaler = Upscaler(inputSize: inputSize, outputSize: outputSize, crop: crop, sharpen: sharpen) else {
