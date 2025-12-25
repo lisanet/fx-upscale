@@ -46,17 +46,11 @@ kernel void sharpenLuma(texture2d<float, access::read> inTexture [[texture(0)]],
 
     // Luma berechnen
     float centerLuma = rgb_to_luma(center.rgb, params.useBT709);
-    float blurredLuma = rgb_to_luma(blurredRGB, params.useBT709);
     float mask = (centerLuma - blurredLuma);
     // thresholding
     if (abs(mask) < 0.01) mask = 0.0;
 
-    float sharpenedLuma = centerLuma + mask * params.sharpness;
-    sharpenedLuma = clamp(sharpenedLuma, 0.0, 1.0);
-
-    float lumaDifference = sharpenedLuma - centerLuma;
-    float3 sharpenedRgb = center.rgb + lumaDifference;
-    float3 resultRgb = clamp(sharpenedRgb, 0.0, 1.0);
-
+    float3 resultRgb = center.rgb + mask * params.sharpness;
+    resultRgb = clamp(resultRgb, 0.0, 1.0);
     outTexture.write(float4(saturate(resultRgb), center.a), gid);
 }
