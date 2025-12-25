@@ -2,6 +2,10 @@
 
 `mx-upscale` is a fast, Metal-based command-line tool for upscaling videos on macOS — optimized for Apple Silicon and modern GPUs.
 
+### Project renamed
+
+This tool was originally a fork of `fx-upscale`. Since then, I’ve added many new features that go far beyond what it used to be. Users who know the original tool might be confused about the differences, so I decided to rename this repository and tool to `mx-upscale` to better reflect the many changes and improvements it has gone through. Because `mx-upscale` uses MetalFX for its operations, the new name also highlights this foundation more clearly.
+
 
 ### ✅ Features
 
