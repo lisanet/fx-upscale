@@ -6,60 +6,57 @@ struct SharpenParams {
     uint  useBT709;   // 0 = BT.601, 1 = BT.709
 };
 
-// YUV color space conversion constants
-//constant float3 kLumaWeights = float3(0.299, 0.587, 0.114);
-
 float rgb_to_luma(float3 rgb, bool useBT709) {
     return useBT709
         ? dot(rgb, float3(0.2126, 0.7152, 0.0722))   // BT.709
         : dot(rgb, float3(0.2990, 0.5870, 0.1140));  // BT.601
 }
 
-// A simple sharpening kernel that operates only on the luma channel.
-// It uses a 3x3 convolution filter for an unsharp mask effect.
+
 kernel void sharpenLuma(texture2d<float, access::read> inTexture [[texture(0)]],
                         texture2d<float, access::write> outTexture [[texture(1)]],
                         constant SharpenParams& params [[buffer(0)]],
                         uint2 gid [[thread_position_in_grid]])
 {
     // Ensure we don't read/write outside of the texture bounds
-    if (gid.x >= outTexture.get_width() || gid.y >= outTexture.get_height()) {
-        return;
-    }
+    uint2 size = uint2(inTexture.get_width(), inTexture.get_height());
+    if (gid.x >= size.x || gid.y >= size.y) return;
 
-    // --- Unsharp Masking on Luma ---
+    // Unsharp Mask Kernel (3x3)
+    const float blurWeights[9] = {
+        1, 2, 1,
+        2, 4, 2,
+        1, 2, 1
+    };
+    const float blurDiv = 16.0;
 
-    // 1. Get the original color and calculate its luma
-    float4 originalColor = inTexture.read(gid);
-    float originalLuma = rgb_to_luma(originalColor.rgb, params.useBT709);
-    //float originalLuma = dot(originalColor.rgb, kLumaWeights);
-
-    // 2. Create a blurred version of the luma by averaging neighbors (3x3 box blur)
+    float4 center = inTexture.read(gid);
+    // Create a blurred version 
     float blurredLuma = 0.0;
-    for (int y = -1; y <= 1; ++y) {
-        for (int x = -1; x <= 1; ++x) {
-            uint2 sampleCoord = uint2(gid.x + x, gid.y + y);
-            // Clamp to edge to handle boundary pixels
-            sampleCoord.x = clamp(sampleCoord.x, uint(0), inTexture.get_width() - 1);
-            sampleCoord.y = clamp(sampleCoord.y, uint(0), inTexture.get_height() - 1);
-            
-            float4 neighborColor = inTexture.read(sampleCoord);
-            //blurredLuma += dot(neighborColor.rgb, kLumaWeights);
-            blurredLuma += rgb_to_luma(neighborColor.rgb, params.useBT709);
+    for (int dy = -1; dy <= 1; dy++) {
+        for (int dx = -1; dx <= 1; dx++) {
+            uint2 coord = clamp(gid + uint2(dx, dy), uint2(0,0), size - 1);
+            float3 sample = inTexture.read(coord).rgb;
+            float sampleLuma = rgb_to_luma(sample, params.useBT709);
+            int idx = (dy + 1) * 3 + (dx + 1);
+            blurredLuma += sampleLuma * blurWeights[idx];
         }
     }
-    blurredLuma /= 9.0;
+    blurredLuma /= blurDiv;
 
-    // 3. Calculate the "unsharp mask" (difference between original and blurred luma)
-    //    and apply the sharpness factor.
-    float mask = originalLuma - blurredLuma;
-    float sharpenedLuma = originalLuma + (mask * params.sharpness);
+    // Luma berechnen
+    float centerLuma = rgb_to_luma(center.rgb, params.useBT709);
+    float blurredLuma = rgb_to_luma(blurredRGB, params.useBT709);
+    float mask = (centerLuma - blurredLuma);
+    // thresholding
+    if (abs(mask) < 0.01) mask = 0.0;
 
-    // 4. Calculate the difference in luma and add it back to the original RGB channels.
-    //    This preserves the original hue and saturation.
-    float lumaDifference = sharpenedLuma - originalLuma;
-    float3 sharpenedRgb = originalColor.rgb + lumaDifference;
+    float sharpenedLuma = centerLuma + mask * params.sharpness;
+    sharpenedLuma = clamp(sharpenedLuma, 0.0, 1.0);
 
-    // 5. Write the final, sharpened color, ensuring it's clamped to the valid [0,1] range.
-    outTexture.write(float4(saturate(sharpenedRgb), originalColor.a), gid);
+    float lumaDifference = sharpenedLuma - centerLuma;
+    float3 sharpenedRgb = center.rgb + lumaDifference;
+    float3 resultRgb = clamp(sharpenedRgb, 0.0, 1.0);
+
+    outTexture.write(float4(saturate(resultRgb), center.a), gid);
 }
