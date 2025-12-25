@@ -131,13 +131,13 @@ Use this option carefully to avoid oversharpening.
 
 ### 🧪 Example
 
-Upscale a 1080p video to 4K with very high quality. The default scaling factor is 2.0. Verbose output.
+Upscale a 1080p video to 4K with very high quality. Verbose output.
 
 ```bash
-mx-upscale -i input.mp4 -q 80 -o output_4k.mov
+mx-upscale -i input.mp4 -q 80 --target 4k -o output_4k.mov
 ```
 
-Upscale a PAL video with 720x576 anamorphic encoded video to FullHD non-anamorph 1920x1080 with reasonable high quality (58) and using Speed-priority Mode and B-Frames. Be quiet, no info output
+Upscale a PAL video with 720x576 anamorphic encoded video to FullHD non-anamorph 1920x1080 with reasonable high quality (60) and using Speed-priority Mode and B-Frames. Be quiet, no info output
 
 ```bash
 mx-upscale -i input.mp4 -width 1920 -height 1080 --quiet -o output_4k.mov
