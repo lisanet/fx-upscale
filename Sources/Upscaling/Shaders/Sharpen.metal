@@ -8,7 +8,7 @@ struct SharpenParams {
 
 float rgb_to_luma(float3 rgb, bool useBT709) {
     return useBT709
-        ? dot(rgb, float3(0.2126, 0.7152, 0.0722))   // BT.709
+        ? dot(rgb, float3(0.2126, 0.7152, 0.0722))   
         : dot(rgb, float3(0.2990, 0.5870, 0.1140));  // BT.601
 }
 
@@ -35,7 +35,7 @@ kernel void sharpenLuma(texture2d<float, access::read> inTexture [[texture(0)]],
     float blurredLuma = 0.0;
     for (int dy = -1; dy <= 1; dy++) {
         for (int dx = -1; dx <= 1; dx++) {
-            uint2 coord = clamp(gid + uint2(dx, dy), uint2(0,0), size - 1);
+            uint2 coord = clamp(gid + int2(dx, dy), uint2(0,0), size - 1);
             float3 sample = inTexture.read(coord).rgb;
             float sampleLuma = rgb_to_luma(sample, params.useBT709);
             int idx = (dy + 1) * 3 + (dx + 1);
@@ -48,9 +48,12 @@ kernel void sharpenLuma(texture2d<float, access::read> inTexture [[texture(0)]],
     float centerLuma = rgb_to_luma(center.rgb, params.useBT709);
     float mask = (centerLuma - blurredLuma);
     // thresholding
-    if (abs(mask) < 0.01) mask = 0.0;
+    if (abs(mask) < 0.01) {
+        outTexture.write(center, gid);
+    } else {
+        float3 resultRgb = center.rgb + mask * params.sharpness;
+        resultRgb = clamp(resultRgb, 0.0, 1.0);
+        outTexture.write(float4(resultRgb, center.a), gid);
 
-    float3 resultRgb = center.rgb + mask * params.sharpness;
-    resultRgb = clamp(resultRgb, 0.0, 1.0);
-    outTexture.write(float4(saturate(resultRgb), center.a), gid);
+    }
 }
