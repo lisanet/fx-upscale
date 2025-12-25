@@ -9,11 +9,12 @@ This tool was originally a fork of `fx-upscale`. Since then, I’ve added many n
 
 ### ✅ Features
 
-* GPU-accelerated Metal processing for ultra-fast video upscaling  
+* GPU-accelerated Metal processing for ultra-fast video upscaling, cropping and sharpening  
 * Automatic size calculation (keep aspect ratio if only width or height is given)  
 * Supports `HEVC`, `H.264`, and `ProRes` codecs  
 * Adjustable encoder quality (0-100)  
 * Optional cropping before upscale  
+* Optional sharpening after upscale
 * Smart fallback to ProRes for very large outputs  
 * Speed-priority mode for faster encoding with minimal quality loss  
 
@@ -79,7 +80,7 @@ SCALING OPTIONS:
                            '8k' (7680x4320)
   -1, --square            Scale anamorphic video to square pixels when using --target
   -r, --crop <rect>       Crop rectangle 'width:height:left:top'. Applied before upscaling.
-  -s, --sharpen <amount>  Sharpen video after upscaling. Recommended values: 0.5 - 0.9 (fhd) 
+  -s, --sharpen <amount>  Sharpen video after upscaling. Recommended values: 0.7 - 1.2 (fhd) 
 
 CODEC OPTIONS:
   -c, --codec <codec>     output codec: 'hevc', 'prores', or 'h264 (default: hevc)
@@ -120,11 +121,13 @@ While this slightly reduces theoretical quality, the visual impact is minimal �
 
 ### 🔪 Sharpening
 
-The `--sharpen` option sharpens the video after upscaling. It uses the luminance channel only for sharpening, which results in fewer halos and less color shifting compared to an unsharp mask filter.
+The `--sharpen` option sharpens the video after it has been upscaled. It works only on the luminance channel and uses a threshold to avoid sharpening uniform areas, noise, and compression artifacts.
 
-The optimal values depend on the upscaled resolution. Higher resolutions may allow the use of higher values. For FHD content, recommended values range between 0.5 and 0.9.
+The optimal values depend on the upscaled resolution. Higher resolutions may allow the use of higher values.
 
-Use this option with care to avoid oversharpening. Recent DVD content usually does not require additional sharpening.
+Although most recent DVD content is already quite good, a small amount of additional sharpening can still provide visible benefits on TV screens. For upscaling DVD content to Full HD, recommended values range between 0.7 and 1.2, with 0.9 being a good and fairly safe starting point.
+
+Use this option carefully to avoid oversharpening. 
 
 ### 🧪 Example
 
