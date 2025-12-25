@@ -84,7 +84,7 @@ SCALING OPTIONS:
 
 CODEC OPTIONS:
   -c, --codec <codec>     output codec: 'hevc', 'prores', or 'h264 (default: hevc)
-  -q, --quality <quality> encoder quality 0 – 100. Applies to HEVC/H.264, ProRes is always lossless (default: 58)
+  -q, --quality <quality> encoder quality 0 – 100. Applies to HEVC/H.264, ProRes is always lossless (default: 60)
   -g, --gop <size>        GOP size (default: let encoder decide the GOP size)
   -b, --bframes <bool>    use B-frames. You can use yes/no, true/false, 1/0 (default: yes)
   -p, --prio_speed <bool> prioritize speed over quality. You can use yes/no, true/false, 1/0 (default: yes)
@@ -109,9 +109,9 @@ The `--quality` option accepts values between **0–100**, mapping directly to V
 This behaves similarly to `CRF/CQ` controls used in `H.264/HEVC`.  
 For **ProRes**, this parameter is ignored.
 
-For best results, use `--quality` values above **58**. Values above 90 will only increase file size with little or no noticeable visual improvement. 
+For best results, use `--quality` values above **60**. Values above 90 will only increase file size with little or no noticeable visual improvement. 
 
-The recommended value is **58**.
+The recommended value is **60**.
 
 ### ⚡ Speed-priority Mode
 

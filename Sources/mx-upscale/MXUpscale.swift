@@ -127,7 +127,7 @@ struct CodecOptions: ParsableArguments {
     @Option(name: .shortAndLong, help: "output codec: 'hevc', 'prores', or 'h264")
     var codec: String = "hevc"
     @Option(name: .shortAndLong, help: "encoder quality 0 – 100. Applies to HEVC/H.264, ProRes is always lossless")
-    var quality: Int = 58
+    var quality: Int = 60
     @Option(name: [.short, .customLong("gop")], help: ArgumentHelp("GOP size (default: let encoder decide the GOP size)", valueName: "size"))
     var gopSize: Int?
     @Option(name: .shortAndLong, help: ArgumentHelp("use B-frames. You can use yes/no, true/false, 1/0", valueName: "bool"))
