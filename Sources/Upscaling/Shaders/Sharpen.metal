@@ -45,7 +45,7 @@ kernel void sharpenLuma(texture2d<float, access::read> inTexture [[texture(0)]],
     blurredLuma /= blurDiv;
 
     // Luma berechnen
-    float centerLuma = rgb_to_luma(center.rgb, params.useBT709);
+    float centerLuma = rgb_to_luma(center.rgb, params.useBT709 != 0);
     float mask = (centerLuma - blurredLuma);
     // thresholding
     if (abs(mask) < 0.01) {
