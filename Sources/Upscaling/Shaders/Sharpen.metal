@@ -37,7 +37,7 @@ kernel void sharpenLuma(texture2d<float, access::read> inTexture [[texture(0)]],
         for (int dx = -1; dx <= 1; dx++) {
             int2 coord = clamp(int2(gid) + int2(dx, dy), int2(0,0), int2(size) - 1);
             float3 sample = inTexture.read(uint2(coord)).rgb;
-            float sampleLuma = rgb_to_luma(sample, params.useBT709);
+            float sampleLuma = rgb_to_luma(sample, params.useBT709 != 0);
             int idx = (dy + 1) * 3 + (dx + 1);
             blurredLuma += sampleLuma * blurWeights[idx];
         }
