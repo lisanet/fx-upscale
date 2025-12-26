@@ -119,7 +119,7 @@ struct ScaleOptions: ParsableArguments {
     var square: Bool = false
     @Option(name: [.customShort("r"), .long], help: ArgumentHelp("Crop rectangle 'width:height:left:top'. Applied before upscaling.", valueName: "rect"))
     var crop: CropRect?
-    @Option(name: .shortAndLong, help: ArgumentHelp("Sharpen video after upscaling. Recommended values: 0.5 - 0.9 (fhd) ", valueName: "amount"))
+    @Option(name: .shortAndLong, help: ArgumentHelp("Sharpen video after upscaling. Recommended values: 0.7 - 1.2 (fhd) ", valueName: "amount"))
     var sharpen: Float?   
 }
 
