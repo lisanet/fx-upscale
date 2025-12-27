@@ -43,14 +43,7 @@ public final class Upscaler {
         let sharpenParamsBuffer = device.makeBuffer(length: MemoryLayout<SharpenParams>.stride,options: [])!
         if let sharpen {
             do {
-                guard let shaderURL = Bundle.module.url(
-                    forResource: "Sharpen",
-                    withExtension: "metal"
-                ) else {
-                    throw Error.metalLibraryNotFound("Sharpen.metal")
-                }
-                let source = try String(contentsOf: shaderURL)
-                let library = try device.makeLibrary(source: source, options: nil)
+                let library = try device.makeLibrary(source: Shaders.sharpenLuma, options: nil)
                 if let sharpenLumaFunction = library.makeFunction(name: "sharpenLuma") {
                     sharpenPipelineState = try device.makeComputePipelineState(function: sharpenLumaFunction)
                     var sharpenParams = SharpenParams(

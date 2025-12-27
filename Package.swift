@@ -23,10 +23,7 @@ let package = Package(
             ]
         ),
         .target(
-            name: "Upscaling",
-            resources: [
-                .process("Shaders/Sharpen.metal"),
-            ]
+            name: "Upscaling"
         ),
     ]
 )

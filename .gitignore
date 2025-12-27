@@ -7,3 +7,6 @@ DerivedData/
 .swiftpm/xcode/xcshareddata/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+
+# Generated shader file
+Sources/Upscaling/Shaders/SharpenShader.swift
