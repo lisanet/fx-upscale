@@ -6,7 +6,7 @@
       "args": [],
       "cwd": "${workspaceFolder:mx-upscale}",
       "name": "Debug mx-upscale",
-      "preLaunchTask": "swift: Build Debug mx-upscale",
+      "preLaunchTask": "Build Debug via Script",
       "target": "mx-upscale",
       "configuration": "debug"
     },
@@ -16,7 +16,7 @@
       "args": [],
       "cwd": "${workspaceFolder:mx-upscale}",
       "name": "Release mx-upscale",
-      "preLaunchTask": "swift: Build Release mx-upscale",
+      "preLaunchTask": "Build Release via Script",
       "target": "mx-upscale",
       "configuration": "release"
     }

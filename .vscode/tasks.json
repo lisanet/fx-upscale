@@ -1,0 +1,36 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Debug via Script",
+            "type": "shell",
+            "command": "./build.sh",
+            "args": [
+                "-c",
+                "debug"
+            ],
+            "group": "build",
+            "problemMatcher": [
+                "$swiftc"
+            ],
+            "detail": "Generates SharpenShader.swift and builds the debug executable."
+        },
+        {
+            "label": "Build Release via Script",
+            "type": "shell",
+            "command": "./build.sh",
+            "args": [
+                "-c",
+                "release"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$swiftc"
+            ],
+            "detail": "Generates SharpenShader.swift and builds the release executable."
+        }
+    ]
+}
