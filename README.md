@@ -47,7 +47,7 @@ There are several ways to install `mx-upscale`
 
     ```bash
     cd mx-upscale
-    swift build -c release
+    ./build.sh -c release
     ```
 
     The resulting binary will be located in `.build/release/mx-upscale`. Finally, copy it into a directory in your PATH.
