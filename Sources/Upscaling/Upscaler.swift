@@ -37,7 +37,7 @@ public final class Upscaler {
         self.intermediateOutputTexture = intermediateOutputTexture
         self.crop = crop
         self.sharpen = sharpen
-        self.useBT709 = inputSize.width >= 1280 || inputSize.height >= 720  // sharpening is done before upscaling, so use bt709 only if input is HD or larger, else bt601
+        self.useBT709 = inputSize.width >= 1280 || inputSize.height >= 720  // sharpening is done before encoding (encoding does color conversion!), so use bt709 only if input is HD or larger, else bt601
 
         var sharpenPipelineState: MTLComputePipelineState? = nil
         let sharpenParamsBuffer = device.makeBuffer(length: MemoryLayout<SharpenParams>.stride,options: [])!
