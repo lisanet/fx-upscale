@@ -23,7 +23,10 @@ let package = Package(
             ]
         ),
         .target(
-            name: "Upscaling"
+            name: "Upscaling",  
+            exclude: [
+                ("Shaders/Sharpen.metal")
+            ]
         ),
     ]
 )

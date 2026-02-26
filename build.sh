@@ -5,7 +5,8 @@ set -e
 METAL_FILE="Sources/Upscaling/Shaders/Sharpen.metal"
 SWIFT_FILE="Sources/Upscaling/Shaders/SharpenShader.swift"
 
-echo "Generate $SWIFT_FILE from $METAL_FILE..."
+if [ ! -f "$SWIFT_FILE" ] || [ "$METAL_FILE" -nt "$SWIFT_FILE" ]; then
+    echo "Generate $SWIFT_FILE from $METAL_FILE..."
 
 # Read the content of the Metal file and embed it into the Swift file.
 cat > "$SWIFT_FILE" <<EOF
@@ -21,7 +22,8 @@ $(cat "$METAL_FILE")
 }
 EOF
 
-echo "$SWIFT_FILE was successfully generated."
+    echo "$SWIFT_FILE was successfully generated."
+fi
 
 echo "Start Swift Build..."
 swift build "$@"
