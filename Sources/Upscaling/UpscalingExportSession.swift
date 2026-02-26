@@ -291,13 +291,9 @@ public class UpscalingExportSession {
             throw error
         }
 
-        if let error = assetWriter.error {
+        if assetReader.error != nil {
             try? FileManager.default.removeItem(at: outputURL)
-            throw error
-        }
-        if let error = assetReader.error {
-            try? FileManager.default.removeItem(at: outputURL)
-            throw error
+            throw Error.assetReaderFailed
         }
         if assetWriter.status == .cancelled || assetReader.status == .cancelled {
             try? FileManager.default.removeItem(at: outputURL)
@@ -762,6 +758,7 @@ extension UpscalingExportSession {
         case missingTaggedBuffers
         case invalidTaggedBuffers
         case failedToCreateUpscaler
+        case assetReaderFailed
 
         public var errorDescription: String? {
             switch self {
@@ -804,6 +801,11 @@ extension UpscalingExportSession {
             case .failedToCreateUpscaler:
                 return NSLocalizedString(
                     "Failed to create upscaler",
+                    comment: "UpscalingExportSession.Error"
+                )
+            case .assetReaderFailed:
+                return NSLocalizedString(
+                    "Could not read input file",
                     comment: "UpscalingExportSession.Error"
                 )
             }
